@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center py-4">
+    <div class="col-md-10">
+        <div class="text-center mb-5">
+            <h1 class="display-4 fw-bold text-dark">メインメニュー</h1>
+            <p class="lead text-muted">各機能を選択してください</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-6">
+                <a href="{{ url_for('masters_menu') }}" class="btn btn-outline-primary btn-menu w-100 shadow-sm">
+                    <i class="bi bi-database-gear"></i>
+                    <span class="fs-3 fw-bold">マスタ管理</span>
+                    <small class="text-muted mt-2">部署・社員・作業・製品の管理</small>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="{{ url_for('performance_input') }}" class="btn btn-outline-success btn-menu w-100 shadow-sm">
+                    <i class="bi bi-pencil-square"></i>
+                    <span class="fs-3 fw-bold">実績入力</span>
+                    <small class="text-muted mt-2">日々の作業実績を登録</small>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="{{ url_for('performance_list') }}" class="btn btn-outline-info btn-menu w-100 shadow-sm">
+                    <i class="bi bi-list-check"></i>
+                    <span class="fs-3 fw-bold">実績一覧・修正</span>
+                    <small class="text-muted mt-2">登録データの確認と編集</small>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="{{ url_for('reports') }}" class="btn btn-outline-warning btn-menu w-100 shadow-sm">
+                    <i class="bi bi-graph-up"></i>
+                    <span class="fs-3 fw-bold">集計・レポート</span>
+                    <small class="text-muted mt-2">データの集計とCSV出力</small>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

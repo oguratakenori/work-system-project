@@ -1,0 +1,106 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="back-nav d-flex gap-2">
+    <a href="{{ url_for('masters_menu') }}" class="btn btn-secondary shadow-sm">
+        <i class="bi bi-arrow-left"></i> マスタ管理へ戻る
+    </a>
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary shadow-sm">
+        <i class="bi bi-house"></i> メニューへ戻る
+    </a>
+</div>
+
+<h2 class="header-title">作業マスタ管理</h2>
+
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body">
+        <h5 class="card-title fw-bold text-muted mb-3"><i class="bi bi-plus-circle me-2"></i>作業登録</h5>
+        <form method="POST" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">作業ID</label>
+                <input type="text" name="work_code" class="form-control" placeholder="W000" required>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label small fw-bold">作業名</label>
+                <input type="text" name="name" class="form-control" placeholder="作業名" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">担当部署</label>
+                <select name="department_id" class="form-select">
+                    <option value="">部署を選択</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ dept.department_code }}: {{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto d-flex align-items-end">
+                <button type="submit" class="btn btn-primary px-4 shadow-sm">登録</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>作業ID</th>
+            <th>作業名</th>
+            <th>担当部署</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for work in works %}
+        <tr>
+            <td>{{ work.work_code }}</td>
+            <td>{{ work.name }}</td>
+            <td>{{ work.department.name if work.department else 'なし' }}</td>
+            <td>
+                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ work.id }}">
+                    修正
+                </button>
+
+                <!-- Edit Modal -->
+                <div class="modal fade" id="editModal{{ work.id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form action="{{ url_for('edit_work', id=work.id) }}" method="POST">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">作業情報修正</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body text-start">
+                                    <div class="mb-3">
+                                        <label class="form-label">作業ID</label>
+                                        <input type="text" name="work_code" value="{{ work.work_code }}" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">作業名</label>
+                                        <input type="text" name="name" value="{{ work.name }}" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">担当部署</label>
+                                        <select name="department_id" class="form-select">
+                                            <option value="">なし</option>
+                                            {% for dept in departments %}
+                                            <option value="{{ dept.id }}" {{ 'selected' if work.department_id == dept.id else '' }}>{{ dept.department_code }}: {{ dept.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                                    <button type="submit" class="btn btn-primary">更新</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="{{ url_for('delete_work', id=work.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('削除しますか？')">削除</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

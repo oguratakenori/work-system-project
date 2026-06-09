@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="back-nav">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary shadow-sm">
+        <i class="bi bi-arrow-left"></i> メニューへ戻る
+    </a>
+</div>
+
+<h2 class="header-title">実績一覧</h2>
+
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" name="employee_code" class="form-control" placeholder="社員コード" value="{{ request.args.get('employee_code', '') }}">
+            </div>
+            <div class="col-md-4">
+                <select name="department_code" class="form-select">
+                    <option value="">全ての部署</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.department_code }}" {{ 'selected' if request.args.get('department_code') == dept.department_code else '' }}>{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary px-4 shadow-sm">検索</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>作業日</th>
+                <th>社員コード</th>
+                <th>部署コード</th>
+                <th>作業コード</th>
+                <th>製品コード</th>
+                <th>時間(h)</th>
+                <th>数量</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr>
+                <td>{{ record.work_date }}</td>
+                <td>{{ record.employee_code }}</td>
+                <td>{{ record.department_code }}</td>
+                <td>{{ record.work_code }}</td>
+                <td>{{ record.product_code }}</td>
+                <td>{{ record.work_hours }}</td>
+                <td>{{ record.quantity }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

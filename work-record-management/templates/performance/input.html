@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="back-nav">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary shadow-sm">
+        <i class="bi bi-arrow-left"></i> メニューへ戻る
+    </a>
+</div>
+
+<h2 class="header-title">作業実績入力</h2>
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">作業日</label>
+                        <input type="date" name="work_date" class="form-control" value="{{ today }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">社員コード</label>
+                        <input type="text" name="employee_code" class="form-control" placeholder="E000" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">部署</label>
+                        <select name="department_code" class="form-select">
+                            <option value="">選択なし</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.department_code }}">{{ dept.department_code }}: {{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">作業</label>
+                        <select name="work_code" class="form-select" required>
+                            <option value="">選択してください</option>
+                            {% for work in works %}
+                            <option value="{{ work.work_code }}">{{ work.work_code }}: {{ work.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">製品コード</label>
+                        <input type="text" name="product_code" class="form-control" placeholder="P000" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-bold">作業時間 (h)</label>
+                            <input type="number" step="0.1" name="work_hours" class="form-control" placeholder="0.0" required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-bold">数量</label>
+                            <input type="number" name="quantity" class="form-control" placeholder="0" required>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mt-3">
+                        <button type="submit" class="btn btn-success btn-lg shadow-sm">実績を登録する</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Set default date to today
+    document.querySelector('input[name="work_date"]').valueAsDate = new Date();
+</script>
+{% endblock %}

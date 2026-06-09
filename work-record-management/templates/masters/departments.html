@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="back-nav d-flex gap-2">
+    <a href="{{ url_for('masters_menu') }}" class="btn btn-secondary shadow-sm">
+        <i class="bi bi-arrow-left"></i> マスタ管理へ戻る
+    </a>
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary shadow-sm">
+        <i class="bi bi-house"></i> メニューへ戻る
+    </a>
+</div>
+
+<h2 class="header-title">部署マスタ管理</h2>
+
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body">
+        <h5 class="card-title fw-bold text-muted mb-3"><i class="bi bi-plus-circle me-2"></i>新規登録</h5>
+        <form method="POST" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" name="department_code" class="form-control" placeholder="部署コード（例: D001）" required>
+            </div>
+            <div class="col-md-5">
+                <input type="text" name="name" class="form-control" placeholder="部署名" required>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary px-4 shadow-sm">登録</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>部署コード</th>
+            <th>部署名</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for dept in departments %}
+        <tr>
+            <form action="{{ url_for('edit_department', id=dept.id) }}" method="POST">
+                <td>
+                    <input type="text" name="department_code" value="{{ dept.department_code }}" class="form-control form-control-sm" required>
+                </td>
+                <td>
+                    <input type="text" name="name" value="{{ dept.name }}" class="form-control form-control-sm" required>
+                </td>
+                <td>
+                    <button type="submit" class="btn btn-success btn-sm">更新</button>
+                    <a href="{{ url_for('delete_department', id=dept.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('削除しますか？')">削除</a>
+                </td>
+            </form>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
