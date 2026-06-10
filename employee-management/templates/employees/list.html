@@ -1,0 +1,106 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header-title d-flex justify-content-between align-items-center">
+    <h2>社員一覧</h2>
+    <a href="{{ url_for('employee_new') }}" class="btn btn-success">
+        <i class="bi bi-plus-lg"></i> 新規登録
+    </a>
+</div>
+
+<div class="card mb-3 bg-light">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('employee_list') }}" class="row g-2 align-items-center">
+            <div class="col-md-2">
+                <input type="text" class="form-control" name="emp_code" placeholder="社員コード" value="{{ request.args.get('emp_code', '') }}">
+            </div>
+            <div class="col-md-3">
+                <input type="text" class="form-control" name="name" placeholder="氏名・フリガナ(曖昧)" value="{{ request.args.get('name', '') }}">
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="dept_id">
+                    <option value="">すべての部署</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" {{ 'selected' if request.args.get('dept_id') == dept.id|string else '' }}>{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="pos_id">
+                    <option value="">すべての役職</option>
+                    {% for pos in positions %}
+                    <option value="{{ pos.id }}" {{ 'selected' if request.args.get('pos_id') == pos.id|string else '' }}>{{ pos.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="status">
+                    <option value="">すべての状態</option>
+                    <option value="在職" {{ 'selected' if request.args.get('status') == '在職' else '' }}>在職</option>
+                    <option value="休職" {{ 'selected' if request.args.get('status') == '休職' else '' }}>休職</option>
+                    <option value="退職" {{ 'selected' if request.args.get('status') == '退職' else '' }}>退職</option>
+                </select>
+            </div>
+            <div class="col-md-1 d-flex gap-1">
+                <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-search"></i></button>
+                <a href="{{ url_for('employee_list') }}" class="btn btn-outline-secondary flex-grow-1"><i class="bi bi-arrow-counterclockwise"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>社員コード</th>
+                    <th>氏名</th>
+                    <th>部署</th>
+                    <th>役職</th>
+                    <th>時給</th>
+                    <th>状態</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in employees %}
+                <tr>
+                    <td>{{ emp.employee_code }}</td>
+                    <td>{{ emp.last_name }} {{ emp.first_name }}</td>
+                    <td>{{ emp.department.name if emp.department else 'ー' }}</td>
+                    <td>{{ emp.position.name if emp.position else 'ー' }}</td>
+                    <td>{{ emp.current_hourly_rate }}円</td>
+                    <td>
+                        <span class="badge {{ 'bg-success' if emp.status == '在職' else 'bg-warning' if emp.status == '休職' else 'bg-secondary' }}">
+                            {{ emp.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('employee_detail', id=emp.id) }}" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-search"></i> 詳細
+                        </a>
+                        <a href="{{ url_for('employee_edit', id=emp.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil"></i> 編集
+                        </a>
+                        <form action="{{ url_for('employee_delete', id=emp.id) }}" method="POST" class="d-inline" onsubmit="return confirm('本当に削除しますか？（状態が退職になり、一覧から非表示になります）');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> 削除
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center">登録されている社員はありません。</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="mt-3">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">メインメニューへ戻る</a>
+</div>
+{% endblock %}

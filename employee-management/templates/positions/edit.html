@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header-title">
+    <h2>{{ '役職編集' if position else '役職新規登録' }}</h2>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label for="position_code" class="form-label">役職コード</label>
+                <input type="text" class="form-control" id="position_code" name="position_code" 
+                       value="{{ position.position_code if position else '' }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="name" class="form-label">役職名</label>
+                <input type="text" class="form-control" id="name" name="name" 
+                       value="{{ position.name if position else '' }}" required>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-success">保存</button>
+                <a href="{{ url_for('position_list') }}" class="btn btn-secondary">キャンセル</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

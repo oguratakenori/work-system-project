@@ -1,0 +1,69 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header-title">
+    <h2>メインメニュー</h2>
+</div>
+
+<div class="row g-4">
+    <!-- 社員管理 -->
+    <div class="col-md-4">
+        <div class="card h-100 text-center shadow-sm">
+            <div class="card-body d-flex flex-column align-items-center justify-content-center py-5">
+                <i class="bi bi-people-fill text-success mb-3" style="font-size: 3rem;"></i>
+                <h5 class="card-title">社員管理</h5>
+                <p class="card-text text-muted">社員の登録・編集・詳細確認</p>
+                <a href="{{ url_for('employee_list') }}" class="btn btn-success stretched-link">一覧を表示</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 部署管理 -->
+    <div class="col-md-4">
+        <div class="card h-100 text-center shadow-sm">
+            <div class="card-body d-flex flex-column align-items-center justify-content-center py-5">
+                <i class="bi bi-building text-success mb-3" style="font-size: 3rem;"></i>
+                <h5 class="card-title">部署管理</h5>
+                <p class="card-text text-muted">部署コード・名称の管理</p>
+                <a href="{{ url_for('department_list') }}" class="btn btn-success stretched-link">一覧を表示</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 役職管理 -->
+    <div class="col-md-4">
+        <div class="card h-100 text-center shadow-sm">
+            <div class="card-body d-flex flex-column align-items-center justify-content-center py-5">
+                <i class="bi bi-briefcase-fill text-success mb-3" style="font-size: 3rem;"></i>
+                <h5 class="card-title">役職管理</h5>
+                <p class="card-text text-muted">役職の登録・編集</p>
+                <a href="{{ url_for('position_list') }}" class="btn btn-success stretched-link">一覧を表示</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSVインポート -->
+    <div class="col-md-6">
+        <div class="card h-100 text-center shadow-sm">
+            <div class="card-body d-flex flex-column align-items-center justify-content-center py-4">
+                <i class="bi bi-file-earmark-arrow-up-fill text-primary mb-3" style="font-size: 2.5rem;"></i>
+                <h5 class="card-title">CSVインポート</h5>
+                <p class="card-text text-muted">CSVファイルから社員情報を一括登録・更新</p>
+                <a href="{{ url_for('csv_import') }}" class="btn btn-primary stretched-link">インポート画面へ</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSVエクスポート -->
+    <div class="col-md-6">
+        <div class="card h-100 text-center shadow-sm">
+            <div class="card-body d-flex flex-column align-items-center justify-content-center py-4">
+                <i class="bi bi-file-earmark-arrow-down-fill text-primary mb-3" style="font-size: 2.5rem;"></i>
+                <h5 class="card-title">CSVエクスポート</h5>
+                <p class="card-text text-muted">登録されている社員情報をCSV形式で出力</p>
+                <a href="{{ url_for('csv_export') }}" class="btn btn-primary stretched-link">エクスポート実行</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

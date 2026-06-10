@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header-title d-flex justify-content-between align-items-center">
+    <h2>社員詳細</h2>
+    <div>
+        <a href="{{ url_for('employee_edit', id=employee.id) }}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> 編集
+        </a>
+        <a href="{{ url_for('employee_list') }}" class="btn btn-secondary">一覧へ戻る</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">基本情報</div>
+            <div class="card-body">
+                <table class="table">
+                    <tr>
+                        <th width="30%">社員コード</th>
+                        <td>{{ employee.employee_code }}</td>
+                    </tr>
+                    <tr>
+                        <th>氏名</th>
+                        <td>{{ employee.last_name }} {{ employee.first_name }}</td>
+                    </tr>
+                    <tr>
+                        <th>フリガナ</th>
+                        <td>{{ employee.furigana_last }} {{ employee.furigana_first }}</td>
+                    </tr>
+                    <tr>
+                        <th>所属部署</th>
+                        <td>{{ employee.department.name if employee.department else 'ー' }} {{ '(' + employee.department.department_code + ')' if employee.department else '' }}</td>
+                    </tr>
+                    <tr>
+                        <th>役職</th>
+                        <td>{{ employee.position.name if employee.position else 'ー' }}</td>
+                    </tr>
+                    <tr>
+                        <th>入社日</th>
+                        <td>{{ employee.hire_date if employee.hire_date else 'ー' }}</td>
+                    </tr>
+                    <tr>
+                        <th>退職日</th>
+                        <td>{{ employee.retirement_date if employee.retirement_date else 'ー' }}</td>
+                    </tr>
+                    <tr>
+                        <th>状態</th>
+                        <td>
+                            <span class="badge {{ 'bg-success' if employee.status == '在職' else 'bg-warning' if employee.status == '休職' else 'bg-secondary' }}">
+                                {{ employee.status }}
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">時給情報</div>
+            <div class="card-body">
+                <p class="h4">現在時給: {{ employee.current_hourly_rate }} 円</p>
+                <hr>
+                <p class="text-muted">時給履歴機能は今後のステップで実装予定です。</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header-title">
+    <h2>{{ '部署編集' if department else '部署新規登録' }}</h2>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label for="department_code" class="form-label">部署コード (D001形式)</label>
+                <input type="text" class="form-label form-control" id="department_code" name="department_code" 
+                       value="{{ department.department_code if department else '' }}" required pattern="D\d{3}" title="D+数字3桁で入力してください">
+            </div>
+            <div class="mb-3">
+                <label for="name" class="form-label">部署名</label>
+                <input type="text" class="form-control" id="name" name="name" 
+                       value="{{ department.name if department else '' }}" required>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-success">保存</button>
+                <a href="{{ url_for('department_list') }}" class="btn btn-secondary">キャンセル</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

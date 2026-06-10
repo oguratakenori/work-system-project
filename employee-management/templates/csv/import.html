@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header-title">
+    <h2>CSVインポート</h2>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h5 class="card-title">インポートファイルの選択</h5>
+        <p class="text-muted small">
+            docs/csv-specification.md に準拠したCSVファイルを選択してください。<br>
+            1行目はヘッダー行（employee_code, name, furigana, department_code, position, hourly_wage）が必要です。
+        </p>
+        
+        <form action="{{ url_for('csv_import') }}" method="POST" enctype="multipart/form-data" class="mt-4">
+            <div class="mb-3">
+                <label for="formFile" class="form-label">CSVファイル (.csv)</label>
+                <input class="form-control" type="file" id="formFile" name="file" accept=".csv" required>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-file-earmark-arrow-up"></i> アップロードしてプレビュー
+                </button>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">キャンセル</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
