@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>製品マスタ一覧</h2>
+    <a href="{{ url_for('product_new') }}" class="btn btn-success">新規登録</a>
+</div>
+<div class="card mb-3 bg-light"><div class="card-body">
+    <form method="GET" class="row g-2">
+        <div class="col-md-3">
+            <select name="department_id" class="form-select">
+                <option value="">全ての部署</option>
+                {% for d in departments %}
+                <option value="{{ d.id }}" {{ 'selected' if request.args.get('department_id') == d.id|string else '' }}>{{ d.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3"><input type="text" name="product_code" class="form-control" placeholder="製品コード" value="{{ request.args.get('product_code', '') }}"></div>
+        <div class="col-md-4"><input type="text" name="name" class="form-control" placeholder="製品名" value="{{ request.args.get('name', '') }}"></div>
+        <div class="col-md-2 d-flex gap-1">
+            <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-search"></i></button>
+            <a href="{{ url_for('product_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div></div>
+<table class="table bg-white shadow-sm table-hover">
+    <thead><tr><th>部署</th><th>製品コード</th><th>製品名</th><th>単価</th><th>登録日</th><th>廃止日</th><th>操作</th></tr></thead>
+    <tbody>
+        {% for p in products %}
+        <tr class="{{ 'table-secondary text-muted' if p.abolished_date else '' }}">
+            <td>{{ p.department.name if p.department else 'ー' }}</td>
+            <td>{{ p.product_code }}</td>
+            <td>{{ p.name }}</td>
+            <td>{{ p.price }}円</td>
+            <td>{{ p.registered_date }}</td>
+            <td>{{ p.abolished_date or 'ー' }}</td>
+            <td>
+                <a href="{{ url_for('product_edit', id=p.id) }}" class="btn btn-sm btn-outline-primary">編集</a>
+                <form action="{{ url_for('product_delete', id=p.id) }}" method="POST" class="d-inline" onsubmit="return confirm('削除しますか？');">
+                    <button class="btn btn-sm btn-outline-danger">削除</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center">登録されている製品はありません。</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+<a href="{{ url_for('index') }}" class="btn btn-secondary">戻る</a>
+{% endblock %}

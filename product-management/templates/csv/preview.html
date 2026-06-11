@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>インポート プレビュー</h2>
+{% if preview.error %}
+<div class="alert alert-danger mt-3">
+    <h5><i class="bi bi-exclamation-triangle"></i> 以下の行でエラーが発生しました</h5>
+    <ul>
+        {% for e in preview.error %}
+        <li>行 {{ e.line }}: {{ e.reason }}</li>
+        {% endfor %}
+    </ul>
+    <p>CSVを修正して再度アップロードしてください。（※部署コードが社員管理システムに存在しない場合もエラーになります）</p>
+    <a href="{{ url_for('csv_import') }}" class="btn btn-danger">戻る</a>
+</div>
+{% else %}
+<div class="card mt-3 shadow-sm">
+    <div class="card-header bg-success text-white">
+        インポート予定データ (新規: {{ preview.new|length }}件, 更新: {{ preview.update|length }}件)
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>部署</th>
+                    <th>製品コード</th>
+                    <th>製品名</th>
+                    <th>単価</th>
+                    <th>状態</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in preview.new %}
+                <tr class="table-success">
+                    <td>{{ r.department_name }}</td>
+                    <td>{{ r.product_code }}</td>
+                    <td>{{ r.name }}</td>
+                    <td>{{ r.price }}</td>
+                    <td><span class="badge bg-success">新規</span></td>
+                </tr>
+                {% endfor %}
+                {% for r in preview.update %}
+                <tr>
+                    <td>{{ r.department_name }}</td>
+                    <td>{{ r.product_code }}</td>
+                    <td>{{ r.name }}</td>
+                    <td>{{ r.price }}</td>
+                    <td><span class="badge bg-primary">更新 ({{ r.changes|join(', ') }})</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<form action="{{ url_for('csv_import_execute') }}" method="POST" class="mt-4">
+    <input type="hidden" name="new_rows" value='{{ preview.new|tojson }}'>
+    <input type="hidden" name="update_rows" value='{{ preview.update|tojson }}'>
+    <button type="submit" class="btn btn-success" {% if not preview.new and not preview.update %}disabled{% endif %}>インポート実行</button>
+    <a href="{{ url_for('csv_import') }}" class="btn btn-secondary">やり直す</a>
+</form>
+{% endif %}
+{% endblock %}

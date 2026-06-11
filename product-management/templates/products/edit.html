@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>{{ '製品編集' if product else '製品新規登録' }}</h2>
+<form method="POST" class="bg-white p-4 shadow-sm mt-3">
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label class="form-label text-danger fw-bold">部署 (必須)</label>
+            <select name="department_id" class="form-select" required>
+                <option value="">部署を選択</option>
+                {% for d in departments %}
+                <option value="{{ d.id }}" {{ 'selected' if product and product.department_id == d.id else '' }}>{{ d.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label text-danger fw-bold">製品コード (必須)</label>
+            <input type="text" name="product_code" class="form-control" value="{{ product.product_code if product else '' }}" required>
+            <small class="text-muted">※同一部署内での重複は不可</small>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label text-danger fw-bold">製品名 (必須)</label>
+            <input type="text" name="name" class="form-control" value="{{ product.name if product else '' }}" required>
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label class="form-label">単価 (円)</label>
+            <input type="number" name="price" class="form-control" value="{{ product.price if product else 0 }}">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">登録日</label>
+            <input type="date" name="registered_date" class="form-control" placeholder=" " value="{{ product.registered_date if product else '' }}">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">廃止日</label>
+            <input type="date" name="abolished_date" class="form-control" placeholder=" " value="{{ product.abolished_date if product else '' }}">
+        </div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">備考</label>
+        <textarea name="notes" class="form-control" rows="3">{{ product.notes if product else '' }}</textarea>
+    </div>
+    <button type="submit" class="btn btn-success">保存</button>
+    <a href="{{ url_for('product_list') }}" class="btn btn-secondary">キャンセル</a>
+</form>
+{% endblock %}

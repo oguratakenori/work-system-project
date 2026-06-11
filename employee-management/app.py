@@ -8,7 +8,7 @@ from models import db, Department, Position, Employee, HourlyRateHistory
 from sqlalchemy import or_
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///employee_management.db'
+base_dir = os.path.abspath(os.path.dirname(__file__)); db_path = os.path.join(base_dir, 'instance', 'employee_management.db').replace('\\\\ ', '/'); app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'dev-secret-key'
 
