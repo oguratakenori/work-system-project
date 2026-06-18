@@ -44,3 +44,6 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 **/instance/
+
+# Temporary files for review
+all_code_for_review.txt
