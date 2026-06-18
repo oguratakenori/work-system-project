@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 import csv
 import io
 import json
@@ -7,6 +8,8 @@ from flask import Flask, render_template, redirect, url_for, flash, request, mak
 from models import db, Department, Product
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
+
+load_dotenv()
 
 app = Flask(__name__)
 base_dir = os.path.abspath(os.path.dirname(__file__))
@@ -18,7 +21,7 @@ app.config['SQLALCHEMY_BINDS'] = {
     'employee_db': f'sqlite:///{employee_db_path}'
 }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'dev-secret-key-product'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-default-key-please-change')
 
 db.init_app(app)
 

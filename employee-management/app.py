@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 import csv
 import io
 import json
@@ -7,10 +8,12 @@ from flask import Flask, render_template, redirect, url_for, flash, request, mak
 from models import db, Department, Position, Employee, HourlyRateHistory
 from sqlalchemy import or_
 
+load_dotenv()
+
 app = Flask(__name__)
 base_dir = os.path.abspath(os.path.dirname(__file__)); db_path = os.path.join(base_dir, 'instance', 'employee_management.db').replace('\\\\ ', '/'); app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'dev-secret-key'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-default-key-please-change')
 
 db.init_app(app)
 

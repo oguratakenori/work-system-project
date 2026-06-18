@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY', 'dev_secret_key')
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-default-key-please-change')
 
 # Database Configuration
 database_url = os.getenv('DATABASE_URL')
