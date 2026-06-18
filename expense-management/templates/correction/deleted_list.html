@@ -1,0 +1,193 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{{ url_for('correction_search') }}" class="btn btn-outline-secondary shadow-sm px-3">
+        <i class="bi bi-arrow-left"></i> 修正一覧へ戻る
+    </a>
+</div>
+
+<div class="header-title">
+    <h3>削除済み経費データ一覧</h3>
+</div>
+
+<div class="alert alert-warning shadow-sm border-0 mb-4">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    削除済みデータはここから復元、またはデータベースから完全に削除することができます。
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+            <table class="table table-hover align-middle mb-0 table-sm">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th class="ps-3">計上単位</th>
+                        <th>計上日</th>
+                        <th>科目名</th>
+                        <th class="text-end">金額</th>
+                        <th>削除日時</th>
+                        <th class="text-center" style="width: 150px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td class="ps-3">
+                            {% if record.unit == 'monthly' %}
+                            <span class="badge bg-info-subtle text-info border border-info">月次</span>
+                            {% else %}
+                            <span class="badge bg-success-subtle text-success border border-success">日次</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ record.target_date.strftime('%Y/%m/%d') }}</td>
+                        <td>
+                            <span class="small text-muted d-block">{{ record.account.code }}</span>
+                            {{ record.account.name }}
+                        </td>
+                        <td class="text-end fw-bold">{{ "{:,}".format(record.amount) }}</td>
+                        <td class="small text-danger">{{ record.deleted_at.strftime('%Y/%m/%d %H:%M') if record.deleted_at else '不明' }}</td>
+                        <td class="text-center">
+                            <form id="restore-form-{{ record.id }}" action="{{ url_for('correction_restore', id=record.id) }}" method="POST" style="display:inline;">
+                                <button type="button" class="btn btn-xs btn-outline-success py-1 px-2" title="復元"
+                                        onclick="showRestoreModal({{ record.id }})">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i>復元
+                                </button>
+                            </form>
+                            <form id="purge-form-{{ record.id }}" action="{{ url_for('correction_purge', id=record.id) }}" method="POST" style="display:inline;">
+                                <button type="button" class="btn btn-xs btn-outline-danger py-1 px-2" title="完全削除" 
+                                        onclick="showPurgeModal({{ record.id }})">
+                                    <i class="bi bi-trash3-fill me-1"></i>完全削除
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">削除済みのデータはありません。</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Restore Confirmation Modal -->
+<div class="modal fade" id="restoreModal" tabindex="-1" aria-labelledby="restoreModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white border-0">
+                <h5 class="modal-title" id="restoreModalLabel">
+                    <i class="bi bi-arrow-counterclockwise me-2"></i>復元の確認
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="mb-0 fw-bold">この経費データを復元しますか？</p>
+                <p class="text-muted small mt-2 mb-0">復元すると通常の経費データ一覧に戻ります。</p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-success px-4" id="btn-confirm-restore">復元</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Permanent Delete Confirmation Modal -->
+<div class="modal fade" id="purgeModal" tabindex="-1" aria-labelledby="purgeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white border-0">
+                <h5 class="modal-title" id="purgeModalLabel">
+                    <i class="bi bi-exclamation-octagon-fill me-2"></i>完全削除の確認
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="mb-0 fw-bold">この経費データを完全削除しますか？</p>
+                <p class="text-danger small mt-2 mb-0">この操作は取り消せません。<br>復元もできなくなります。</p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-danger px-4" id="btn-confirm-purge">完全削除</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card:hover {
+        transform: none !important;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+    }
+    .btn-xs {
+        font-size: 0.75rem;
+    }
+    .sticky-top {
+        z-index: 10;
+    }
+    .bg-info-subtle { background-color: #e0f7fa; }
+    .bg-success-subtle { background-color: #e8f5e9; }
+</style>
+
+<script>
+    let currentPurgeId = null;
+    let purgeModalInstance = null;
+    let currentRestoreId = null;
+    let restoreModalInstance = null;
+
+    function showPurgeModal(id) {
+        currentPurgeId = id;
+        if (purgeModalInstance) {
+            purgeModalInstance.show();
+        }
+    }
+
+    function showRestoreModal(id) {
+        currentRestoreId = id;
+        if (restoreModalInstance) {
+            restoreModalInstance.show();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Purge Modal
+        const purgeModalElement = document.getElementById('purgeModal');
+        if (purgeModalElement) {
+            purgeModalInstance = new bootstrap.Modal(purgeModalElement);
+        }
+        
+        const btnConfirmPurge = document.getElementById('btn-confirm-purge');
+        if (btnConfirmPurge) {
+            btnConfirmPurge.addEventListener('click', function() {
+                if (currentPurgeId) {
+                    const form = document.getElementById('purge-form-' + currentPurgeId);
+                    if (form) {
+                        form.submit();
+                    }
+                }
+            });
+        }
+
+        // Initialize Restore Modal
+        const restoreModalElement = document.getElementById('restoreModal');
+        if (restoreModalElement) {
+            restoreModalInstance = new bootstrap.Modal(restoreModalElement);
+        }
+
+        const btnConfirmRestore = document.getElementById('btn-confirm-restore');
+        if (btnConfirmRestore) {
+            btnConfirmRestore.addEventListener('click', function() {
+                if (currentRestoreId) {
+                    const form = document.getElementById('restore-form-' + currentRestoreId);
+                    if (form) {
+                        form.submit();
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

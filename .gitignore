@@ -39,3 +39,8 @@ instance/
 # OS
 .DS_Store
 Thumbs.db
+
+*.db.bak
+*.sqlite
+*.sqlite3
+**/instance/

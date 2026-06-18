@@ -44,8 +44,12 @@
                         <a href="{{ url_for('department_edit', id=dept.id) }}" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-pencil"></i> 編集
                         </a>
-                        <form action="{{ url_for('department_delete', id=dept.id) }}" method="POST" class="d-inline" onsubmit="return confirm('本当に削除しますか？');">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <form action="{{ url_for('department_delete', id=dept.id) }}" method="POST" class="d-inline" id="delete-form-{{ dept.id }}">
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#deleteConfirmModal"
+                                    data-bs-form-id="delete-form-{{ dept.id }}"
+                                    data-bs-message="部署「{{ dept.name }}」を本当に削除しますか？">
                                 <i class="bi bi-trash"></i> 削除
                             </button>
                         </form>

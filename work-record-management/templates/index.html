@@ -1,41 +1,69 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="row justify-content-center py-4">
-    <div class="col-md-10">
-        <div class="text-center mb-5">
-            <h1 class="display-4 fw-bold text-dark">メインメニュー</h1>
-            <p class="lead text-muted">各機能を選択してください</p>
+<div class="header-title">
+    <h2>メインメニュー</h2>
+</div>
+
+<div class="row g-4 row-cols-1 row-cols-md-2">
+    <!-- 作業マスタ -->
+    <div class="col">
+        <div class="card h-100 text-center shadow-sm hover-effect hover-warning">
+            <div class="card-body d-flex flex-column align-items-center p-5">
+                <i class="bi bi-tools text-warning mb-3" style="font-size: 3rem;"></i>
+                <h5 class="card-title fw-bold">作業マスタ</h5>
+                <p class="card-text text-muted mb-4">作業項目の管理・新規登録</p>
+                <div class="mt-auto">
+                    <!-- Visual Button: Positioned above the stretched link to maintain color and hover -->
+                    <a href="{{ url_for('manage_works') }}" class="btn btn-warning text-white" style="position: relative; z-index: 2;">マスタを表示</a>
+                </div>
+                <!-- Stretched Link: Overlays the entire card for easy navigation -->
+                <a href="{{ url_for('manage_works') }}" class="stretched-link"></a>
+            </div>
         </div>
-        
-        <div class="row g-4">
-            <div class="col-md-6">
-                <a href="{{ url_for('masters_menu') }}" class="btn btn-outline-primary btn-menu w-100 shadow-sm">
-                    <i class="bi bi-database-gear"></i>
-                    <span class="fs-3 fw-bold">マスタ管理</span>
-                    <small class="text-muted mt-2">部署・社員・作業・製品の管理</small>
-                </a>
+    </div>
+
+    <!-- 実績入力 -->
+    <div class="col">
+        <div class="card h-100 text-center shadow-sm hover-effect hover-success">
+            <div class="card-body d-flex flex-column align-items-center p-5">
+                <i class="bi bi-pencil-square text-success mb-3" style="font-size: 3rem;"></i>
+                <h5 class="card-title fw-bold">実績入力</h5>
+                <p class="card-text text-muted mb-4">日々の作業実績を登録</p>
+                <div class="mt-auto">
+                    <a href="{{ url_for('performance_input') }}" class="btn btn-success" style="position: relative; z-index: 2;">入力画面へ</a>
+                </div>
+                <a href="{{ url_for('performance_input') }}" class="stretched-link"></a>
             </div>
-            <div class="col-md-6">
-                <a href="{{ url_for('performance_input') }}" class="btn btn-outline-success btn-menu w-100 shadow-sm">
-                    <i class="bi bi-pencil-square"></i>
-                    <span class="fs-3 fw-bold">実績入力</span>
-                    <small class="text-muted mt-2">日々の作業実績を登録</small>
-                </a>
+        </div>
+    </div>
+
+    <!-- 実績一覧 -->
+    <div class="col">
+        <div class="card h-100 text-center shadow-sm hover-effect hover-info">
+            <div class="card-body d-flex flex-column align-items-center p-5">
+                <i class="bi bi-list-check text-info mb-3" style="font-size: 3rem;"></i>
+                <h5 class="card-title fw-bold">実績一覧・修正</h5>
+                <p class="card-text text-muted mb-4">登録データの確認と編集</p>
+                <div class="mt-auto">
+                    <a href="{{ url_for('performance_list') }}" class="btn btn-info text-white" style="position: relative; z-index: 2;">一覧を表示</a>
+                </div>
+                <a href="{{ url_for('performance_list') }}" class="stretched-link"></a>
             </div>
-            <div class="col-md-6">
-                <a href="{{ url_for('performance_list') }}" class="btn btn-outline-info btn-menu w-100 shadow-sm">
-                    <i class="bi bi-list-check"></i>
-                    <span class="fs-3 fw-bold">実績一覧・修正</span>
-                    <small class="text-muted mt-2">登録データの確認と編集</small>
-                </a>
-            </div>
-            <div class="col-md-6">
-                <a href="{{ url_for('reports') }}" class="btn btn-outline-warning btn-menu w-100 shadow-sm">
-                    <i class="bi bi-graph-up"></i>
-                    <span class="fs-3 fw-bold">集計・レポート</span>
-                    <small class="text-muted mt-2">データの集計とCSV出力</small>
-                </a>
+        </div>
+    </div>
+
+    <!-- レポート -->
+    <div class="col">
+        <div class="card h-100 text-center shadow-sm hover-effect hover-primary">
+            <div class="card-body d-flex flex-column align-items-center p-5">
+                <i class="bi bi-graph-up text-primary mb-3" style="font-size: 3rem;"></i>
+                <h5 class="card-title fw-bold">集計・レポート</h5>
+                <p class="card-text text-muted mb-4">データの集計とCSV出力</p>
+                <div class="mt-auto">
+                    <a href="{{ url_for('reports') }}" class="btn btn-primary" style="position: relative; z-index: 2;">レポートを表示</a>
+                </div>
+                <a href="{{ url_for('reports') }}" class="stretched-link"></a>
             </div>
         </div>
     </div>

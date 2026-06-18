@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="back-nav mb-4">
+    <a href="{{ url_for('manage_works') }}" class="btn btn-secondary shadow-sm">
+        <i class="bi bi-arrow-left"></i> 一覧へ戻る
+    </a>
+</div>
+
+<h2 class="header-title">作業マスタ新規登録</h2>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted small">作業ID</label>
+                        <input type="text" name="work_code" class="form-control form-control-lg" placeholder="W000" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted small">作業名</label>
+                        <input type="text" name="name" class="form-control form-control-lg" placeholder="作業名" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted small">部署 (外部参照)</label>
+                        <select name="department_id" class="form-select form-select-lg">
+                            <option value="">部署を選択してください</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg shadow-sm">
+                            <i class="bi bi-check-circle me-2"></i>登録する
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,178 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary shadow-sm px-3">
+        <i class="bi bi-house-door"></i> メニューへ戻る
+    </a>
+</div>
+
+<div class="header-title">
+    <h3>勘定科目 表示管理</h3>
+</div>
+
+<div class="card shadow-sm border-0" style="border-top: 5px solid var(--system-color) !important;">
+    <div class="card-body p-4">
+        <div class="row g-3 align-items-stretch">
+            <!-- OUT Side -->
+            <div class="col-md-5">
+                <div class="d-flex align-items-center justify-content-center mb-2 text-secondary">
+                    <i class="bi bi-dash-circle-dotted fs-5 me-2"></i>
+                    <h6 class="mb-0 fw-bold">非表示対象 (OUT)</h6>
+                </div>
+                <div class="bg-light p-1 rounded border">
+                    <select id="out_list" class="form-select border-0 bg-transparent" size="10" multiple style="height: 300px; outline: none; box-shadow: none;">
+                        {% for account in out_accounts %}
+                        <option value="{{ account.id }}" class="py-1 px-3 rounded mb-1">{{ account.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Middle Buttons -->
+            <div class="col-md-2 d-flex flex-column justify-content-center">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary shadow-sm" id="btn_to_in" title="表示対象へ移動">
+                        <i class="bi bi-chevron-right fs-5"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary shadow-sm" id="btn_to_out" title="非表示対象へ移動">
+                        <i class="bi bi-chevron-left fs-5"></i>
+                    </button>
+                    <div class="my-2 border-bottom"></div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary shadow-sm" id="btn_move_up" title="順序を上げる">
+                        <i class="bi bi-chevron-up fs-5"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary shadow-sm" id="btn_move_down" title="順序を下げる">
+                        <i class="bi bi-chevron-down fs-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- IN Side -->
+            <div class="col-md-5">
+                <div class="d-flex align-items-center justify-content-center mb-2 text-success">
+                    <i class="bi bi-check-circle-fill fs-5 me-2"></i>
+                    <h6 class="mb-0 fw-bold">表示対象 (IN)</h6>
+                </div>
+                <div class="bg-light p-1 rounded border" style="border-color: #d1e7dd !important;">
+                    <select id="in_list" class="form-select border-0 bg-transparent" size="10" multiple style="height: 300px; outline: none; box-shadow: none;">
+                        {% for account in in_accounts %}
+                        <option value="{{ account.id }}" class="py-1 px-3 rounded mb-1">{{ account.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="text-center mt-1">
+                    <small class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-info-circle"></i> 上から順に入力画面へ表示されます</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+            <div>
+                <a href="{{ url_for('account_new') }}" class="btn btn-sm btn-outline-secondary shadow-sm px-3 py-2 me-2">
+                    <i class="bi bi-plus-lg"></i> 新規登録
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-info shadow-sm px-3 py-2" onclick="location.reload();">
+                    <i class="bi bi-arrow-clockwise"></i> 更新
+                </button>
+            </div>
+            <button type="button" class="btn btn-sm btn-system shadow-sm px-4 py-2" id="btn_save">
+                <i class="bi bi-cloud-upload"></i> 変更を保存する
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* select option styling */
+    option:hover {
+        background-color: #e9ecef !important;
+    }
+    option:checked {
+        background-color: var(--system-color) !important;
+        color: white !important;
+    }
+    /* Disable hover-effect for this specific page if needed, but here we just ensure cards don't have it */
+    .card:hover {
+        transform: none !important;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const outList = document.getElementById('out_list');
+    const inList = document.getElementById('in_list');
+    const btnToIn = document.getElementById('btn_to_in');
+    const btnToOut = document.getElementById('btn_to_out');
+    const btnMoveUp = document.getElementById('btn_move_up');
+    const btnMoveDown = document.getElementById('btn_move_down');
+    const btnSave = document.getElementById('btn_save');
+
+    // Move OUT -> IN
+    btnToIn.addEventListener('click', function() {
+        const selected = Array.from(outList.selectedOptions);
+        selected.forEach(opt => {
+            inList.appendChild(opt);
+        });
+    });
+
+    // Move IN -> OUT
+    btnToOut.addEventListener('click', function() {
+        const selected = Array.from(inList.selectedOptions);
+        selected.forEach(opt => {
+            outList.appendChild(opt);
+        });
+    });
+
+    // Move UP in IN
+    btnMoveUp.addEventListener('click', function() {
+        const selected = inList.selectedOptions;
+        if (selected.length === 1) {
+            const opt = selected[0];
+            const prev = opt.previousElementSibling;
+            if (prev) {
+                inList.insertBefore(opt, prev);
+            }
+        }
+    });
+
+    // Move DOWN in IN
+    btnMoveDown.addEventListener('click', function() {
+        const selected = inList.selectedOptions;
+        if (selected.length === 1) {
+            const opt = selected[0];
+            const next = opt.nextElementSibling;
+            if (next) {
+                inList.insertBefore(next, opt);
+            }
+        }
+    });
+
+    // Save All
+    btnSave.addEventListener('click', function() {
+        const inIds = Array.from(inList.options).map(opt => opt.value);
+        const outIds = Array.from(outList.options).map(opt => opt.value);
+
+        fetch("{{ url_for('account_save_all') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ in_ids: inIds, out_ids: outIds })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showFlashMessage(data.message, 'success');
+            } else {
+                showFlashMessage('エラー: ' + data.message, 'error');
+            }
+        })
+        .catch(err => {
+            showFlashMessage('通信エラーが発生しました。', 'error');
+            console.error(err);
+        });
+
+    });
+});
+</script>
+{% endblock %}

@@ -12,10 +12,20 @@
     <div class="card-body">
         <form method="GET" action="{{ url_for('employee_list') }}" class="row g-2 align-items-center">
             <div class="col-md-2">
-                <input type="text" class="form-control" name="emp_code" placeholder="社員コード" value="{{ request.args.get('emp_code', '') }}">
+                <input type="text" class="form-control" name="emp_code" placeholder="社員コード" value="{{ request.args.get('emp_code', '') }}" list="emp_code_list">
+                <datalist id="emp_code_list">
+                    {% for emp in all_emp_data %}
+                    <option value="{{ emp.employee_code }}">{{ emp.last_name }} {{ emp.first_name }}</option>
+                    {% endfor %}
+                </datalist>
             </div>
             <div class="col-md-3">
-                <input type="text" class="form-control" name="name" placeholder="氏名・フリガナ(曖昧)" value="{{ request.args.get('name', '') }}">
+                <input type="text" class="form-control" name="name" placeholder="氏名・フリガナ" value="{{ request.args.get('name', '') }}" list="name_list">
+                <datalist id="name_list">
+                    {% for emp in all_emp_data %}
+                    <option value="{{ emp.last_name }} {{ emp.first_name }}">
+                    {% endfor %}
+                </datalist>
             </div>
             <div class="col-md-2">
                 <select class="form-select" name="dept_id">
@@ -70,7 +80,7 @@
                     <td>{{ emp.last_name }} {{ emp.first_name }}</td>
                     <td>{{ emp.department.name if emp.department else 'ー' }}</td>
                     <td>{{ emp.position.name if emp.position else 'ー' }}</td>
-                    <td>{{ emp.current_hourly_rate }}円</td>
+                    <td>{{ "{:,}".format(emp.current_hourly_rate) }}円</td>
                     <td>
                         <span class="badge {{ 'bg-success' if emp.status == '在職' else 'bg-warning' if emp.status == '休職' else 'bg-secondary' }}">
                             {{ emp.status }}
@@ -83,8 +93,12 @@
                         <a href="{{ url_for('employee_edit', id=emp.id) }}" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-pencil"></i> 編集
                         </a>
-                        <form action="{{ url_for('employee_delete', id=emp.id) }}" method="POST" class="d-inline" onsubmit="return confirm('本当に削除しますか？（状態が退職になり、一覧から非表示になります）');">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <form action="{{ url_for('employee_delete', id=emp.id) }}" method="POST" class="d-inline" id="delete-form-{{ emp.id }}">
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#deleteConfirmModal"
+                                    data-bs-form-id="delete-form-{{ emp.id }}"
+                                    data-bs-message="本当に削除しますか？（状態が退職になり、一覧から非表示になります）">
                                 <i class="bi bi-trash"></i> 削除
                             </button>
                         </form>
@@ -103,4 +117,42 @@
 <div class="mt-3">
     <a href="{{ url_for('index') }}" class="btn btn-secondary">メインメニューへ戻る</a>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // datalistを持つ全てのinput要素を対象にする
+    const inputs = document.querySelectorAll('input[list]');
+    
+    inputs.forEach(input => {
+        const listId = input.getAttribute('list');
+        
+        // 初期状態のチェック：空ならlist属性を一時的に外す
+        if (input.value.length === 0) {
+            input.dataset.listId = listId;
+            input.removeAttribute('list');
+        }
+
+        // 入力イベントで制御
+        input.addEventListener('input', function() {
+            if (this.value.length > 0) {
+                if (!this.getAttribute('list')) {
+                    this.setAttribute('list', this.dataset.listId || listId);
+                }
+            } else {
+                if (!this.dataset.listId) {
+                    this.dataset.listId = this.getAttribute('list') || listId;
+                }
+                this.removeAttribute('list');
+            }
+        });
+
+        // フォーカス時も念のためチェック
+        input.addEventListener('focus', function() {
+            if (this.value.length === 0) {
+                this.removeAttribute('list');
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

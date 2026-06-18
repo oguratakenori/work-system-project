@@ -22,6 +22,7 @@ class Product(db.Model):
     abolished_date = db.Column(db.Date, nullable=True)
     notes = db.Column(db.Text, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
+    updated_at = db.Column(db.Date, nullable=False, default=datetime.now().date, onupdate=datetime.now().date)
 
     __table_args__ = (
         db.UniqueConstraint('department_id', 'product_code', name='uq_dept_prod_code'),

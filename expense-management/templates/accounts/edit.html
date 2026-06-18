@@ -1,0 +1,164 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        {% if account %}
+        <a href="{{ url_for('account_new') }}" class="btn btn-outline-primary shadow-sm px-3">
+            <i class="bi bi-arrow-left"></i> 戻る
+        </a>
+        {% else %}
+        <a href="{{ url_for('account_list') }}" class="btn btn-outline-secondary shadow-sm px-3">
+            <i class="bi bi-arrow-left"></i> 表示管理へ戻る
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="header-title">
+    <h3>{% if account %}勘定科目 編集{% else %}勘定科目 新規登録{% endif %}</h3>
+</div>
+
+<div class="card shadow-sm border-0 mb-4" style="border-top: 5px solid var(--system-color) !important;">
+    <div class="card-body p-3">
+        <form method="POST">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label for="code" class="form-label small fw-bold">科目コード</label>
+                    <input type="text" class="form-control form-control-sm" id="code" name="code" value="{{ account.code if account else '' }}" required>
+                </div>
+                <div class="col-md-5">
+                    <label for="name" class="form-label small fw-bold">科目名</label>
+                    <input type="text" class="form-control form-control-sm" id="name" name="name" value="{{ account.name if account else '' }}" required>
+                </div>
+                <div class="col-md-2">
+                    <label for="is_visible" class="form-label small fw-bold">表示状態</label>
+                    <select class="form-select form-select-sm" id="is_visible" name="is_visible">
+                        <option value="1" {% if not account or account.is_visible %}selected{% endif %}>表示</option>
+                        <option value="0" {% if account and not account.is_visible %}selected{% endif %}>非表示</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-sm btn-system w-100">保存</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if accounts %}
+<div class="header-title mb-2">
+    <h5 class="mb-0">勘定科目一覧</h5>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+            <table class="table table-hover align-middle mb-0 table-sm">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th class="ps-3">科目コード</th>
+                        <th>科目名</th>
+                        <th style="width: 100px;">状態</th>
+                        <th class="text-center" style="width: 160px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for acc in accounts %}
+                    <tr {% if account and account.id == acc.id %}class="table-info"{% endif %}>
+                        <td class="ps-3">{{ acc.code }}</td>
+                        <td>{{ acc.name }}</td>
+                        <td>
+                            {% if acc.is_visible %}
+                            <span class="badge bg-success" style="font-size: 0.7rem;">表示</span>
+                            {% else %}
+                            <span class="badge bg-secondary" style="font-size: 0.7rem;">非表示</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center pe-3">
+                            <a href="{{ url_for('account_edit', id=acc.id) }}" class="btn btn-xs btn-outline-primary me-1 py-0">
+                                <i class="bi bi-pencil small"></i>
+                            </a>
+                            <form id="delete-form-{{ acc.id }}" action="{{ url_for('account_delete', id=acc.id) }}" method="POST" style="display:inline;">
+                                <button type="button" class="btn btn-xs btn-outline-danger py-0" onclick="confirmAccountDelete({{ acc.id }})">
+                                    <i class="bi bi-trash small"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Account Delete Confirmation Modal -->
+<div class="modal fade" id="accountDeleteModal" tabindex="-1" aria-labelledby="accountDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white border-0">
+                <h5 class="modal-title" id="accountDeleteModalLabel">
+                    <i class="bi bi-exclamation-octagon-fill me-2"></i>勘定科目削除の確認
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="mb-0 fw-bold">この勘定科目を削除しますか？</p>
+                <p class="text-danger small mt-2 mb-0">使用中の勘定科目は削除できません。</p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-danger px-4" id="btn-execute-delete">削除</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Disable hover-effect for this specific page */
+    .card:hover {
+        transform: none !important;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+    }
+    .btn-xs {
+        padding: 0.1rem 0.3rem;
+        font-size: 0.75rem;
+    }
+    .sticky-top {
+        z-index: 10;
+    }
+</style>
+
+<script>
+    let currentDeleteId = null;
+    let accountDeleteModalInstance = null;
+
+    function confirmAccountDelete(id) {
+        currentDeleteId = id;
+        if (accountDeleteModalInstance) {
+            accountDeleteModalInstance.show();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const modalElement = document.getElementById('accountDeleteModal');
+        if (modalElement) {
+            accountDeleteModalInstance = new bootstrap.Modal(modalElement);
+        }
+
+        const btnExecuteDelete = document.getElementById('btn-execute-delete');
+        if (btnExecuteDelete) {
+            btnExecuteDelete.addEventListener('click', function() {
+                if (currentDeleteId) {
+                    const form = document.getElementById('delete-form-' + currentDeleteId);
+                    if (form) {
+                        form.submit();
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

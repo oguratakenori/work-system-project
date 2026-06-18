@@ -1,40 +1,40 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="back-nav d-flex gap-2">
-    <a href="{{ url_for('masters_menu') }}" class="btn btn-secondary shadow-sm">
-        <i class="bi bi-arrow-left"></i> マスタ管理へ戻る
-    </a>
+<div class="back-nav d-flex justify-content-between align-items-center mb-4">
     <a href="{{ url_for('index') }}" class="btn btn-outline-secondary shadow-sm">
         <i class="bi bi-house"></i> メニューへ戻る
     </a>
+    <a href="{{ url_for('new_work') }}" class="btn btn-primary shadow-sm">
+        <i class="bi bi-plus-lg"></i> 新規登録
+    </a>
 </div>
 
-<h2 class="header-title">作業マスタ管理</h2>
+<h2 class="header-title">作業マスタ一覧</h2>
 
 <div class="card mb-4 shadow-sm border-0">
     <div class="card-body">
-        <h5 class="card-title fw-bold text-muted mb-3"><i class="bi bi-plus-circle me-2"></i>作業登録</h5>
-        <form method="POST" class="row g-3">
+        <form method="GET" class="row g-3">
             <div class="col-md-3">
                 <label class="form-label small fw-bold">作業ID</label>
-                <input type="text" name="work_code" class="form-control" placeholder="W000" required>
+                <input type="text" name="work_code" class="form-control" placeholder="W000" value="{{ request.args.get('work_code', '') }}">
             </div>
-            <div class="col-md-5">
+            <div class="col-md-4">
                 <label class="form-label small fw-bold">作業名</label>
-                <input type="text" name="name" class="form-control" placeholder="作業名" required>
+                <input type="text" name="name" class="form-control" placeholder="作業名" value="{{ request.args.get('name', '') }}">
             </div>
             <div class="col-md-3">
-                <label class="form-label small fw-bold">担当部署</label>
+                <label class="form-label small fw-bold">部署 (外部参照)</label>
                 <select name="department_id" class="form-select">
-                    <option value="">部署を選択</option>
+                    <option value="">全ての部署</option>
                     {% for dept in departments %}
-                    <option value="{{ dept.id }}">{{ dept.department_code }}: {{ dept.name }}</option>
+                    <option value="{{ dept.id }}" {{ 'selected' if request.args.get('department_id') == dept.id|string else '' }}>{{ dept.name }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="col-auto d-flex align-items-end">
-                <button type="submit" class="btn btn-primary px-4 shadow-sm">登録</button>
+                <button type="submit" class="btn btn-info px-4 shadow-sm me-2">検索</button>
+                <a href="{{ url_for('manage_works') }}" class="btn btn-outline-secondary px-4 shadow-sm">クリア</a>
             </div>
         </form>
     </div>
@@ -54,7 +54,7 @@
         <tr>
             <td>{{ work.work_code }}</td>
             <td>{{ work.name }}</td>
-            <td>{{ work.department.name if work.department else 'なし' }}</td>
+            <td>{{ dept_map.get(work.department_id, '未設定') }}</td>
             <td>
                 <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ work.id }}">
                     修正
@@ -83,7 +83,7 @@
                                         <select name="department_id" class="form-select">
                                             <option value="">なし</option>
                                             {% for dept in departments %}
-                                            <option value="{{ dept.id }}" {{ 'selected' if work.department_id == dept.id else '' }}>{{ dept.department_code }}: {{ dept.name }}</option>
+                                            <option value="{{ dept.id }}" {{ 'selected' if work.department_id == dept.id else '' }}>{{ dept.name }}</option>
                                             {% endfor %}
                                         </select>
                                     </div>
@@ -97,8 +97,36 @@
                     </div>
                 </div>
 
-                <a href="{{ url_for('delete_work', id=work.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('削除しますか？')">削除</a>
+                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal{{ work.id }}">
+                    削除
+                </button>
+
+                <!-- Delete Confirmation Modal -->
+                <div class="modal fade" id="deleteModal{{ work.id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title">削除の確認</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body text-start">
+                                <p>この作業を削除しますか？</p>
+                                <p class="text-danger fw-bold small">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>この操作は取り消せません。
+                                </p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                                <a href="{{ url_for('delete_work', id=work.id) }}" class="btn btn-danger">削除</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4" class="text-center text-muted">データが見つかりませんでした</td>
         </tr>
         {% endfor %}
     </tbody>

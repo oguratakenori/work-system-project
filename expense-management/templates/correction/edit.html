@@ -1,0 +1,80 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="header-title">
+    <h3>経費データ 修正</h3>
+</div>
+
+<div class="card col-md-8 mx-auto shadow-sm border-0" style="border-top: 5px solid #0dcaf0 !important;">
+    <div class="card-body p-4">
+        <form method="POST">
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label fw-bold small text-muted">計上単位</label>
+                <div class="col-sm-9">
+                    <div class="form-check form-check-inline mt-2">
+                        <input class="form-check-input" type="radio" name="unit" id="unit_monthly" value="monthly" {% if record.unit == 'monthly' %}checked{% endif %}>
+                        <label class="form-check-label" for="unit_monthly">月次</label>
+                    </div>
+                    <div class="form-check form-check-inline mt-2">
+                        <input class="form-check-input" type="radio" name="unit" id="unit_daily" value="daily" {% if record.unit == 'daily' %}checked{% endif %}>
+                        <label class="form-check-label" for="unit_daily">日次</label>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-3 row">
+                <label for="target_date" class="col-sm-3 col-form-label fw-bold small text-muted">計上日</label>
+                <div class="col-sm-9">
+                    <input type="date" class="form-control" id="target_date" name="target_date" 
+                           value="{{ record.target_date.strftime('%Y-%m-%d') }}" max="9999-12-31" required>
+                </div>
+            </div>
+            <div class="mb-3 row">
+                <label for="account_id" class="col-sm-3 col-form-label">勘定科目</label>
+                <div class="col-sm-9">
+                    <select class="form-select" id="account_id" name="account_id" required>
+                        {% for account in accounts %}
+                        <option value="{{ account.id }}" {% if record.account_id == account.id %}selected{% endif %}>
+                            {{ account.code }} : {{ account.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3 row">
+                <label for="amount" class="col-sm-3 col-form-label">金額</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control amount-input" id="amount" name="amount" value="{{ "{:,}".format(record.amount) }}" required>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label text-muted">登録日時</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control-plaintext" readonly value="{{ record.created_at.strftime('%Y/%m/%d %H:%M:%S') }}">
+                </div>
+            </div>
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label text-muted">更新日時</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control-plaintext" readonly value="{{ record.updated_at.strftime('%Y/%m/%d %H:%M:%S') }}">
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{{ url_for('correction_search') }}" class="btn btn-secondary me-2">キャンセル</a>
+                <button type="submit" class="btn btn-system">保存</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    /* Disable hover-effect for this specific page */
+    .card:hover {
+        transform: none !important;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+    }
+</style>
+{% endblock %}

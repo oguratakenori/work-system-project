@@ -1,0 +1,68 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{{ url_for('account_new') }}" class="btn btn-outline-secondary shadow-sm px-3">
+            <i class="bi bi-arrow-left"></i> 戻る
+        </a>
+    </div>
+</div>
+
+<div class="header-title">
+    <h3>勘定科目 編集</h3>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow border-0" style="border-top: 5px solid #0dcaf0 !important;">
+            <div class="card-header bg-white border-0 pt-3 px-4 pb-0">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-pencil-square text-info fs-4 me-2"></i>
+                    <h6 class="mb-0 fw-bold text-dark">編集中の勘定科目</h6>
+                </div>
+                <div class="mt-2 p-2 bg-light rounded border-start border-info border-4 small">
+                    <span class="text-info fw-bold">{{ account.code }}</span>：<span class="fw-bold">{{ account.name }}</span>
+                </div>
+            </div>
+            
+            <div class="card-body p-4 pt-3">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="code" class="form-label fw-bold small text-muted mb-1">科目コード</label>
+                        <input type="text" class="form-control" id="code" name="code" value="{{ account.code }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label fw-bold small text-muted mb-1">科目名</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ account.name }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="is_visible" class="form-label fw-bold small text-muted mb-1">表示状態</label>
+                        <select class="form-select" id="is_visible" name="is_visible">
+                            <option value="1" {% if account.is_visible %}selected{% endif %}>表示 (IN)</option>
+                            <option value="0" {% if not account.is_visible %}selected{% endif %}>非表示 (OUT)</option>
+                        </select>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-info text-white shadow-sm">
+                            <i class="bi bi-check-circle"></i> 変更を保存
+                        </button>
+                        <a href="{{ url_for('account_new') }}" class="btn btn-link btn-sm text-muted">キャンセルして戻る</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* 編集画面専用：ホバーエフェクト無効化 */
+    .card:hover {
+        transform: none !important;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+</style>
+{% endblock %}

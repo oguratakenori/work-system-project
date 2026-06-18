@@ -1,0 +1,179 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary shadow-sm px-3">
+        <i class="bi bi-house-door"></i> メニューへ戻る
+    </a>
+</div>
+
+<div class="header-title d-flex justify-content-between align-items-center">
+    <h3 class="mb-0">経費データ修正</h3>
+    <a href="{{ url_for('correction_deleted_list') }}" class="btn btn-sm btn-outline-secondary shadow-sm">
+        <i class="bi bi-trash3 me-1"></i>削除済み一覧
+    </a>
+</div>
+
+<div class="card mb-3 shadow-sm border-0" style="border-top: 5px solid #0dcaf0 !important;">
+    <div class="card-body p-3">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label for="unit" class="form-label small fw-bold text-muted mb-1">計上単位</label>
+                <select class="form-select form-select-sm" id="unit" name="unit">
+                    <option value="">すべて</option>
+                    <option value="monthly" {% if request.args.get('unit') == 'monthly' %}selected{% endif %}>月次</option>
+                    <option value="daily" {% if request.args.get('unit') == 'daily' %}selected{% endif %}>日次</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="from_date" class="form-label small fw-bold text-muted mb-1">計上日 From</label>
+                <input type="date" class="form-control form-control-sm" id="from_date" name="from_date" value="{{ request.args.get('from_date', '') }}" max="9999-12-31">
+            </div>
+            <div class="col-md-3">
+                <label for="to_date" class="form-label small fw-bold text-muted mb-1">計上日 To</label>
+                <input type="date" class="form-control form-control-sm" id="to_date" name="to_date" value="{{ request.args.get('to_date', '') }}" max="9999-12-31">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-sm btn-system w-100 shadow-sm">
+                    <i class="bi bi-search"></i> 検索
+                </button>
+            </div>
+            <div class="col-md-2 text-end">
+                <a href="{{ url_for('correction_search') }}" class="btn btn-sm btn-outline-secondary w-100 shadow-sm">
+                    <i class="bi bi-arrow-counterclockwise"></i> クリア
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+            <table class="table table-hover align-middle mb-0 table-sm">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th class="ps-3">計上単位</th>
+                        <th>計上日</th>
+                        <th>科目コード</th>
+                        <th>科目名</th>
+                        <th class="text-end">金額</th>
+                        <th>登録日時</th>
+                        <th>更新日時</th>
+                        <th class="text-center" style="width: 80px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td class="ps-3">
+                            {% if record.unit == 'monthly' %}
+                            <span class="badge bg-info-subtle text-info border border-info">月次</span>
+                            {% else %}
+                            <span class="badge bg-success-subtle text-success border border-success">日次</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ record.target_date.strftime('%Y/%m/%d') }}</td>
+                        <td>{{ record.account.code }}</td>
+                        <td>{{ record.account.name }}</td>
+                        <td class="text-end fw-bold">{{ "{:,}".format(record.amount) }}</td>
+                        <td class="small">{{ record.created_at.strftime('%Y/%m/%d %H:%M') }}</td>
+                        <td class="small">
+                            {% if record.updated_at and record.updated_at.strftime('%Y%m%d%H%M%S') != record.created_at.strftime('%Y%m%d%H%M%S') %}
+                                {{ record.updated_at.strftime('%Y/%m/%d %H:%M') }}
+                            {% else %}
+                                <span class="text-muted">ー</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ url_for('correction_edit', id=record.id) }}" class="btn btn-xs btn-outline-primary py-0 me-1" title="編集">
+                                <i class="bi bi-pencil small"></i>
+                            </a>
+                            <form id="delete-form-{{ record.id }}" action="{{ url_for('correction_delete', id=record.id, **request.args) }}" method="POST" style="display:inline;">
+                                <button type="button" class="btn btn-xs btn-outline-danger py-0" title="削除" onclick="confirmDelete({{ record.id }})">
+                                    <i class="bi bi-trash small"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">データが見つかりませんでした。</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Logical Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning text-dark border-0">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>削除の確認
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="mb-0 fw-bold">この経費データを削除しますか？</p>
+                <p class="text-muted small mt-2 mb-0">削除後も削除済み一覧から復元できます。</p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-warning px-4" id="btn-execute-delete">削除</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Disable hover-effect for this specific page */
+    .card:hover {
+        transform: none !important;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+    }
+    .btn-xs {
+        padding: 0.1rem 0.3rem;
+        font-size: 0.75rem;
+    }
+    .sticky-top {
+        z-index: 10;
+    }
+    .bg-info-subtle { background-color: #e0f7fa; }
+    .bg-success-subtle { background-color: #e8f5e9; }
+</style>
+
+<script>
+    let currentDeleteId = null;
+    let deleteConfirmModal = null;
+
+    function confirmDelete(id) {
+        currentDeleteId = id;
+        if (deleteConfirmModal) {
+            deleteConfirmModal.show();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const modalElement = document.getElementById('deleteConfirmModal');
+        if (modalElement) {
+            deleteConfirmModal = new bootstrap.Modal(modalElement);
+        }
+
+        const btnExecuteDelete = document.getElementById('btn-execute-delete');
+        if (btnExecuteDelete) {
+            btnExecuteDelete.addEventListener('click', function() {
+                if (currentDeleteId) {
+                    const form = document.getElementById('delete-form-' + currentDeleteId);
+                    if (form) {
+                        form.submit();
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

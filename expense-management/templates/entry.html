@@ -1,0 +1,120 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary shadow-sm px-3">
+        <i class="bi bi-house-door"></i> メニューへ戻る
+    </a>
+</div>
+
+<div class="header-title">
+    <h3>経費一括入力</h3>
+</div>
+
+<div class="card col-md-10 mx-auto shadow-sm border-0" style="border-top: 5px solid var(--system-color) !important;">
+    <div class="card-body p-4">
+        <form method="POST" id="entry_form">
+            <div class="row mb-4 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label d-block fw-bold small text-muted">計上単位</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="unit" id="unit_monthly" value="monthly" checked>
+                        <label class="form-check-label" for="unit_monthly">月次</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="unit" id="unit_daily" value="daily">
+                        <label class="form-check-label" for="unit_daily">日次</label>
+                    </div>
+                </div>
+                <div class="col-md-4 offset-md-4 text-end">
+                    <label for="target_date" class="form-label fw-bold small text-muted d-block">計上日</label>
+                    <input type="date" class="form-control d-inline-block w-auto" id="target_date" name="target_date" max="9999-12-31" required>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-hover align-middle mb-0 table-sm">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th class="ps-3">科目コード</th>
+                            <th>科目名</th>
+                            <th class="text-end pe-3" style="width: 200px;">金額</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for account in accounts %}
+                        <tr>
+                            <td class="ps-3">{{ account.code }}</td>
+                            <td>{{ account.name }}</td>
+                            <td class="pe-3">
+                                <input type="text" class="form-control text-end amount-input" name="amount_{{ account.id }}" placeholder="0">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                <button type="button" class="btn btn-outline-secondary px-4" id="btn_clear">内容をクリア</button>
+                <div>
+                    <button type="submit" class="btn btn-system px-5 shadow-sm">登録を実行する</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    /* Disable hover-effect for this specific page */
+    .card:hover {
+        transform: none !important;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+    }
+    .sticky-top {
+        z-index: 10;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('entry_form');
+        const targetDateInput = document.getElementById('target_date');
+        const btnClear = document.getElementById('btn_clear');
+        const amountInputs = document.querySelectorAll('.amount-input');
+        
+        // Ensure year is not more than 4 digits on input
+        targetDateInput.addEventListener('input', function() {
+            if (this.value) {
+                const year = this.value.split('-')[0];
+                if (year.length > 4) {
+                    this.value = '';
+                    showFlashMessage('年度は4桁以内で入力してください。', 'danger');
+                }
+            }
+        });
+
+        // Clear functionality
+        btnClear.addEventListener('click', function() {
+            amountInputs.forEach(input => input.value = '');
+            targetDateInput.value = '';
+        });
+
+        // Validation on submit
+        form.addEventListener('submit', function(e) {
+            let totalAmount = 0;
+            amountInputs.forEach(input => {
+                const val = parseInt(input.value.replace(/,/g, '')) || 0;
+                totalAmount += Math.abs(val);
+            });
+
+            if (totalAmount === 0) {
+                e.preventDefault();
+                showFlashMessage('金額が入力されていないか、すべて0です。登録するには1円以上の金額を入力してください。', 'danger');
+            }
+        });
+    });
+</script>
+{% endblock %}

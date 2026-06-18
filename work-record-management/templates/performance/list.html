@@ -1,61 +1,275 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="back-nav">
-    <a href="{{ url_for('index') }}" class="btn btn-secondary shadow-sm">
+<style>
+    /* Consistent professional styling */
+    .filter-card {
+        border-top: 5px solid #0d6efd; /* Blue accent */
+        border-radius: 12px;
+        background: #ffffff;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    }
+    .form-label {
+        color: #495057;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.4rem;
+    }
+    .form-control, .form-select {
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #dee2e6;
+    }
+    .table-container {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        margin-top: 1.5rem;
+    }
+    .table thead th {
+        background: #f8f9fa;
+        color: #6c757d;
+        font-weight: 600;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .emp-info { font-size: 0.9rem; font-weight: 500; }
+    .code-badge { font-family: monospace; color: #6c757d; font-size: 0.8rem; }
+</style>
+
+<div class="back-nav mb-3">
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm shadow-sm">
         <i class="bi bi-arrow-left"></i> メニューへ戻る
     </a>
 </div>
 
-<h2 class="header-title">実績一覧</h2>
+<h2 class="header-title">作業実績一覧</h2>
 
-<div class="card mb-4 shadow-sm border-0">
-    <div class="card-body">
-        <form method="GET" class="row g-3">
-            <div class="col-md-4">
-                <input type="text" name="employee_code" class="form-control" placeholder="社員コード" value="{{ request.args.get('employee_code', '') }}">
+<!-- Search Filters -->
+<div class="card filter-card border-0 mb-4">
+    <div class="card-body p-4">
+        <form method="GET" class="row g-3" id="searchForm">
+            <!-- 1. 社員検索 (Autocomplete) -->
+            <div class="col-md-3 position-relative">
+                <label class="form-label">社員検索</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-person"></i></span>
+                    <input type="text" name="employee_code" id="employee_code" class="form-control" 
+                           placeholder="コードまたは名前" list="employeeList" autocomplete="off" 
+                           value="{{ request.args.get('employee_code', '') }}">
+                </div>
+                <datalist id="employeeList"></datalist>
+                <div id="empDisplay" class="small text-primary position-absolute w-100" style="bottom: -1.2rem;">
+                    {% if request.args.get('employee_code') %}
+                        {{ emp_name_map.get(request.args.get('employee_code'), '') }}
+                    {% endif %}
+                </div>
             </div>
-            <div class="col-md-4">
-                <select name="department_code" class="form-select">
+
+            <!-- 2. 部署検索 -->
+            <div class="col-md-3">
+                <label class="form-label">部署</label>
+                <select name="department_id" id="department_id" class="form-select">
                     <option value="">全ての部署</option>
                     {% for dept in departments %}
-                    <option value="{{ dept.department_code }}" {{ 'selected' if request.args.get('department_code') == dept.department_code else '' }}>{{ dept.name }}</option>
+                    <option value="{{ dept.id }}" {{ 'selected' if request.args.get('department_id') == dept.id|string else '' }}>
+                        {{ dept.name }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-primary px-4 shadow-sm">検索</button>
+
+            <!-- 3. 作業検索 (Cascading) -->
+            <div class="col-md-3">
+                <label class="form-label">作業項目</label>
+                <select name="work_code" id="work_code" class="form-select">
+                    <option value="">全ての作業</option>
+                    {% for work in works %}
+                    <option value="{{ work.work_code }}" {{ 'selected' if request.args.get('work_code') == work.work_code else '' }}>
+                        {{ work.work_code }}：{{ work.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label d-block">&nbsp;</label>
+                <div class="d-flex w-100 gap-2">
+                    <button type="submit" class="btn btn-primary shadow-sm flex-fill text-nowrap">
+                        <i class="bi bi-search me-1"></i>検索
+                    </button>
+                    <a href="{{ url_for('performance_list') }}" class="btn btn-outline-secondary shadow-sm flex-fill text-nowrap">
+                        クリア
+                    </a>
+                </div>
             </div>
         </form>
     </div>
 </div>
 
-<div class="table-responsive">
-    <table class="table table-striped table-hover">
-        <thead>
-            <tr>
-                <th>作業日</th>
-                <th>社員コード</th>
-                <th>部署コード</th>
-                <th>作業コード</th>
-                <th>製品コード</th>
-                <th>時間(h)</th>
-                <th>数量</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in records %}
-            <tr>
-                <td>{{ record.work_date }}</td>
-                <td>{{ record.employee_code }}</td>
-                <td>{{ record.department_code }}</td>
-                <td>{{ record.work_code }}</td>
-                <td>{{ record.product_code }}</td>
-                <td>{{ record.work_hours }}</td>
-                <td>{{ record.quantity }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<!-- Results Table -->
+<div class="table-container">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="ps-4">作業日</th>
+                    <th>担当社員</th>
+                    <th>部署</th>
+                    <th>作業内容</th>
+                    <th>製品</th>
+                    <th>時間</th>
+                    <th class="text-end">数量</th>
+                    <th class="pe-4 text-center">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td class="ps-4 fw-bold text-dark">{{ record.work_date }}</td>
+                    <td>
+                        <div class="emp-info">{{ emp_name_map.get(record.employee_code, '不明') }}</div>
+                        <div class="code-badge">{{ record.employee_code }}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ work_dept_map.get(record.work_code, '未設定') }}</span>
+                    </td>
+                    <td>
+                        <div class="fw-bold text-primary">{{ work_name_map.get(record.work_code, '不明') }}</div>
+                        <div class="code-badge">{{ record.work_code }}</div>
+                    </td>
+                    <td>
+                        <span class="text-secondary small">#{{ record.product_code }}</span>
+                    </td>
+                    <td>
+                        <span class="text-dark">{{ "%.1f"|format(record.work_hours) }} <small class="text-muted">h</small></span>
+                    </td>
+                    <td class="text-end">
+                        <span class="badge bg-success bg-opacity-10 text-success px-3">{{ record.quantity }}</span>
+                    </td>
+                    <td class="pe-4 text-center">
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{{ url_for('edit_performance', id=record.id) }}" class="btn btn-warning btn-sm">
+                                <i class="bi bi-pencil"></i> 修正
+                            </a>
+                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal{{ record.id }}">
+                                <i class="bi bi-trash"></i> 削除
+                            </button>
+                        </div>
+
+                        <!-- Delete Confirmation Modal -->
+                        <div class="modal fade" id="deleteModal{{ record.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-danger text-white">
+                                        <h5 class="modal-title">削除の確認</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body text-start">
+                                        <p>この作業実績を削除しますか？</p>
+                                        <p class="text-danger fw-bold small">
+                                            <i class="bi bi-exclamation-triangle-fill me-1"></i>この操作は取り消せません。
+                                        </p>
+                                        <div class="card bg-light border-0 p-3 mt-3">
+                                            <div class="small text-muted mb-1">削除対象データ:</div>
+                                            <div class="fw-bold">{{ record.work_date }} / {{ emp_name_map.get(record.employee_code, record.employee_code) }}</div>
+                                            <div class="small text-secondary">{{ work_name_map.get(record.work_code, record.work_code) }} ({{ record.quantity }}個)</div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                                        <form action="{{ url_for('delete_performance', id=record.id) }}" method="POST" class="d-inline">
+                                            <button type="submit" class="btn btn-danger">削除</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                        実績データが見つかりませんでした。条件を変えて検索してください。
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
+
+<script>
+    // 1. Employee Autocomplete (Load all into memory on page load)
+    const empInput = document.getElementById('employee_code');
+    const empList = document.getElementById('employeeList');
+    const empDisplay = document.getElementById('empDisplay');
+    let currentEmployees = [];
+
+    async function loadAllEmployees() {
+        try {
+            const resp = await fetch('/api/employees');
+            const data = await resp.json();
+            currentEmployees = data;
+        } catch (err) {
+            console.error('Error fetching employees:', err);
+        }
+    }
+    loadAllEmployees();
+
+    empInput.addEventListener('input', (e) => {
+        const val = e.target.value;
+
+        // Show candidates only after at least 1 character is entered
+        if (val.length >= 1) {
+            if (empList.children.length === 0) {
+                currentEmployees.forEach(emp => {
+                    const option = document.createElement('option');
+                    option.value = emp.employee_code;
+                    option.textContent = `${emp.employee_code}：${emp.last_name} ${emp.first_name}`;
+                    empList.appendChild(option);
+                });
+            }
+        } else {
+            // Clear list when input is empty
+            empList.innerHTML = '';
+        }
+
+        const selectedEmp = currentEmployees.find(emp => emp.employee_code === val);
+        if (selectedEmp) {
+            empDisplay.textContent = `${selectedEmp.last_name} ${selectedEmp.first_name}`;
+        } else {
+            empDisplay.textContent = '';
+        }
+    });
+
+    // 2. Cascading Dropdown (Dept -> Work)
+    const deptSelect = document.getElementById('department_id');
+    const workSelect = document.getElementById('work_code');
+
+    deptSelect.addEventListener('change', async () => {
+        const deptId = deptSelect.value;
+        
+        try {
+            const resp = await fetch(`/api/works?department_id=${deptId}`);
+            const data = await resp.json();
+            
+            workSelect.innerHTML = '<option value="">全ての作業</option>';
+            data.forEach(w => {
+                const option = document.createElement('option');
+                option.value = w.work_code;
+                option.textContent = `${w.work_code}：${w.name}`;
+                workSelect.appendChild(option);
+            });
+        } catch (err) {
+            console.error('Error fetching works:', err);
+        }
+    });
+</script>
 {% endblock %}

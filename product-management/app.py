@@ -46,7 +46,8 @@ def product_list():
 
     products = query.all()
     departments = get_departments_from_employee_db()
-    return render_template('products/list.html', products=products, departments=departments)
+    all_product_codes = [p.product_code for p in Product.query.with_entities(Product.product_code).filter_by(is_active=True).distinct().all()]
+    return render_template('products/list.html', products=products, departments=departments, all_product_codes=all_product_codes)
 
 @app.route('/products/new', methods=['GET', 'POST'])
 def product_new():
@@ -55,15 +56,35 @@ def product_new():
         dept_id = int(request.form.get('department_id'))
         code = request.form.get('product_code')
         
+        # 有効なデータとの重複チェック
         if Product.query.filter_by(department_id=dept_id, product_code=code, is_active=True).first():
-            flash(f'この部署には既に製品コード {code} が登録されています。', 'error')
+            flash('すでにその製品コードは使用されています。', 'error')
             return render_template('products/edit.html', product=None, departments=departments)
         
+        # 削除済みデータの確認（再活性化）
+        inactive_prod = Product.query.filter_by(department_id=dept_id, product_code=code, is_active=False).first()
+        if inactive_prod:
+            inactive_prod.name = request.form.get('name')
+            inactive_prod.price = int(request.form.get('price', '0').replace(',', '') or 0)
+            inactive_prod.registered_date = to_date(request.form.get('registered_date')) or datetime.now().date()
+            inactive_prod.abolished_date = to_date(request.form.get('abolished_date'))
+            inactive_prod.notes = request.form.get('notes')
+            inactive_prod.is_active = True
+            try:
+                db.session.commit()
+                flash('製品を登録しました。', 'success')
+                return redirect(url_for('product_list'))
+            except IntegrityError:
+                db.session.rollback()
+                flash('データベース制約エラー: 部署内で製品コードが重複しています。', 'error')
+                return render_template('products/edit.html', product=None, departments=departments)
+
+        # 新規作成
         new_prod = Product(
             department_id=dept_id,
             product_code=code,
             name=request.form.get('name'),
-            price=int(request.form.get('price') or 0),
+            price=int(request.form.get('price', '0').replace(',', '') or 0),
             registered_date=to_date(request.form.get('registered_date')) or datetime.now().date(),
             abolished_date=to_date(request.form.get('abolished_date')),
             notes=request.form.get('notes')
@@ -87,15 +108,19 @@ def product_edit(id):
         dept_id = int(request.form.get('department_id'))
         code = request.form.get('product_code')
         
-        existing = Product.query.filter_by(department_id=dept_id, product_code=code, is_active=True).first()
+        # 自分以外の重複チェック（有効・無効問わずDB制約に抵触するため）
+        existing = Product.query.filter_by(department_id=dept_id, product_code=code).first()
         if existing and existing.id != product.id:
-            flash(f'この部署には既に製品コード {code} が登録されています。', 'error')
+            if existing.is_active:
+                flash('すでにその製品コードは使用されています。', 'error')
+            else:
+                flash('この製品コードは削除済みデータとして存在するため使用できません。新規登録画面から再登録してください。', 'error')
             return render_template('products/edit.html', product=product, departments=departments)
 
         product.department_id = dept_id
         product.product_code = code
         product.name = request.form.get('name')
-        product.price = int(request.form.get('price') or 0)
+        product.price = int(request.form.get('price', '0').replace(',', '') or 0)
         product.registered_date = to_date(request.form.get('registered_date')) or product.registered_date
         product.abolished_date = to_date(request.form.get('abolished_date'))
         product.notes = request.form.get('notes')

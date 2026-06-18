@@ -1,0 +1,167 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary shadow-sm px-3">
+        <i class="bi bi-house-door"></i> メニューへ戻る
+    </a>
+</div>
+
+<div class="header-title">
+    <h3>経費データ検索・出力</h3>
+</div>
+
+<div class="card mb-3 shadow-sm border-0" style="border-top: 5px solid #0d6efd !important;">
+    <div class="card-body p-3">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label for="unit" class="form-label small fw-bold text-muted mb-1">計上単位</label>
+                <select class="form-select form-select-sm" id="unit" name="unit">
+                    <option value="">すべて</option>
+                    <option value="monthly" {% if request.args.get('unit') == 'monthly' %}selected{% endif %}>月次</option>
+                    <option value="daily" {% if request.args.get('unit') == 'daily' %}selected{% endif %}>日次</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="from_date" class="form-label small fw-bold text-muted mb-1">計上日 From</label>
+                <input type="date" class="form-control form-control-sm" id="from_date" name="from_date" value="{{ request.args.get('from_date', '') }}" max="9999-12-31">
+            </div>
+            <div class="col-md-3">
+                <label for="to_date" class="form-label small fw-bold text-muted mb-1">計上日 To</label>
+                <input type="date" class="form-control form-control-sm" id="to_date" name="to_date" value="{{ request.args.get('to_date', '') }}" max="9999-12-31">
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex gap-2">
+                    <button type="submit" name="all_search" value="1" class="btn btn-sm btn-system flex-grow-1 shadow-sm">
+                        <i class="bi bi-search"></i> 検索
+                    </button>
+                    <a href="{{ url_for('expense_csv', unit=request.args.get('unit'), from_date=request.args.get('from_date'), to_date=request.args.get('to_date')) }}" 
+                       class="btn btn-sm btn-outline-success shadow-sm">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> CSV出力
+                    </a>
+                    <a href="{{ url_for('expense_search') }}" class="btn btn-sm btn-outline-secondary shadow-sm">
+                        <i class="bi bi-x-circle"></i> クリア
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="results-container" style="max-height: 600px; overflow-y: auto; padding-right: 5px;">
+    {% if monthly_records %}
+    <div class="header-title mt-4 mb-2">
+        <h5 class="mb-0">【月次データ】</h5>
+    </div>
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 table-sm" style="table-layout: fixed;">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th style="width: 15%;">計上年月</th>
+                            <th style="width: 15%;">科目コード</th>
+                            <th style="width: 25%;">科目名</th>
+                            <th class="text-end" style="width: 15%;">金額</th>
+                            <th style="width: 15%;">登録日時</th>
+                            <th style="width: 15%;">更新日時</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in monthly_records %}
+                        <tr>
+                            <td class="ps-3">{{ record.target_date.strftime('%Y/%m') }}</td>
+                            <td>{{ record.account.code }}</td>
+                            <td>{{ record.account.name }}</td>
+                            <td class="text-end fw-bold">{{ "{:,}".format(record.amount) }}</td>
+                            <td class="small">{{ record.created_at.strftime('%Y/%m/%d %H:%M') }}</td>
+                            <td class="small">
+                                {% if record.updated_at and record.updated_at.strftime('%Y%m%d%H%M%S') != record.created_at.strftime('%Y%m%d%H%M%S') %}
+                                    {{ record.updated_at.strftime('%Y/%m/%d %H:%M') }}
+                                {% else %}
+                                    <span class="text-muted">ー</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if daily_records %}
+    <div class="header-title mt-4 mb-2">
+        <h5 class="mb-0">【日次データ】</h5>
+    </div>
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 table-sm" style="table-layout: fixed;">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th style="width: 15%;">計上日</th>
+                            <th style="width: 15%;">科目コード</th>
+                            <th style="width: 25%;">科目名</th>
+                            <th class="text-end" style="width: 15%;">金額</th>
+                            <th style="width: 15%;">登録日時</th>
+                            <th style="width: 15%;">更新日時</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in daily_records %}
+                        <tr>
+                            <td class="ps-3">{{ record.target_date.strftime('%Y/%m/%d') }}</td>
+                            <td>{{ record.account.code }}</td>
+                            <td>{{ record.account.name }}</td>
+                            <td class="text-end fw-bold">{{ "{:,}".format(record.amount) }}</td>
+                            <td class="small">{{ record.created_at.strftime('%Y/%m/%d %H:%M') }}</td>
+                            <td class="small">
+                                {% if record.updated_at and record.updated_at.strftime('%Y%m%d%H%M%S') != record.created_at.strftime('%Y%m%d%H%M%S') %}
+                                    {{ record.updated_at.strftime('%Y/%m/%d %H:%M') }}
+                                {% else %}
+                                    <span class="text-muted">ー</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if not monthly_records and not daily_records and request.args.get('all_search') %}
+<div class="alert alert-info mt-4">
+    条件に一致するデータが見つかりませんでした。
+</div>
+{% endif %}
+
+<style>
+    /* Disable hover-effect for this specific page */
+    .card:hover {
+        transform: none !important;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+    }
+    .sticky-top {
+        z-index: 10;
+    }
+    .results-container::-webkit-scrollbar {
+        width: 8px;
+    }
+    .results-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    .results-container::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 4px;
+    }
+    .results-container::-webkit-scrollbar-thumb:hover {
+        background: #bbb;
+    }
+</style>
+{% endblock %}

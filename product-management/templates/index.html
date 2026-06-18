@@ -1,32 +1,40 @@
 {% extends "layout.html" %}
+
 {% block content %}
-<h2>メインメニュー</h2>
-<div class="row g-4 mt-2">
+<div class="header-title">
+    <h2>メインメニュー</h2>
+</div>
+
+<div class="row g-4">
+    <!-- 製品管理 -->
     <div class="col-md-6">
         <div class="card h-100 text-center shadow-sm">
-            <div class="card-body py-5">
-                <i class="bi bi-box-seam text-dark mb-3" style="font-size: 3rem;"></i>
+            <div class="card-body d-flex flex-column align-items-center justify-content-center py-5">
+                <i class="bi bi-box-seam text-primary mb-3" style="font-size: 3rem;"></i>
                 <h5 class="card-title">製品管理</h5>
-                <p class="text-muted">全 {{ product_count }} 件</p>
-                <a href="{{ url_for('product_list') }}" class="btn btn-dark stretched-link mt-3">製品一覧を表示</a>
+                <p class="card-text text-muted">全 {{ product_count }} 件の製品登録・編集</p>
+                <a href="{{ url_for('product_list') }}" class="btn btn-primary stretched-link">製品一覧を表示</a>
             </div>
         </div>
     </div>
+
+    <!-- インポート/エクスポート -->
     <div class="col-md-3">
         <div class="card h-100 text-center shadow-sm">
-            <div class="card-body py-4">
-                <i class="bi bi-file-earmark-arrow-up-fill text-primary mb-3" style="font-size: 2.5rem;"></i>
+            <div class="card-body d-flex flex-column align-items-center justify-content-center py-4">
+                <i class="bi bi-file-earmark-arrow-up-fill text-info mb-3" style="font-size: 2.5rem;"></i>
                 <h5 class="card-title">CSVインポート</h5>
-                <a href="{{ url_for('csv_import') }}" class="btn btn-primary stretched-link mt-2">実行</a>
+                <a href="{{ url_for('csv_import') }}" class="btn btn-info stretched-link text-white">実行</a>
             </div>
         </div>
     </div>
+
     <div class="col-md-3">
         <div class="card h-100 text-center shadow-sm">
-            <div class="card-body py-4">
+            <div class="card-body d-flex flex-column align-items-center justify-content-center py-4">
                 <i class="bi bi-file-earmark-arrow-down-fill text-secondary mb-3" style="font-size: 2.5rem;"></i>
                 <h5 class="card-title">CSVエクスポート</h5>
-                <a href="{{ url_for('csv_export') }}" class="btn btn-secondary stretched-link mt-2">実行</a>
+                <a href="{{ url_for('csv_export') }}" class="btn btn-secondary stretched-link">実行</a>
             </div>
         </div>
     </div>

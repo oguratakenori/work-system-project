@@ -2,9 +2,8 @@
 
 {% block content %}
 <style>
-    /* Scoped styles for Performance Input to make it "less bland" */
     .input-card {
-        border-top: 5px solid #198754; /* Green accent */
+        border-top: 5px solid #ffc107; /* Warning/Yellow accent for edit */
         border-radius: 12px;
         background: #ffffff;
         box-shadow: 0 10px 25px rgba(0,0,0,0.05);
@@ -23,8 +22,8 @@
         transition: all 0.2s ease;
     }
     .form-control:focus, .form-select:focus {
-        border-color: #198754;
-        box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.1);
+        border-color: #ffc107;
+        box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.1);
     }
     .input-group-text {
         background-color: #f8f9fa;
@@ -39,8 +38,8 @@
 </style>
 
 <div class="back-nav">
-    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm shadow-sm">
-        <i class="bi bi-arrow-left"></i> メニューへ戻る
+    <a href="{{ url_for('performance_list') }}" class="btn btn-outline-secondary btn-sm shadow-sm">
+        <i class="bi bi-arrow-left"></i> 一覧へ戻る
     </a>
 </div>
 
@@ -49,25 +48,25 @@
         <div class="card input-card border-0">
             <div class="card-header bg-transparent border-0 pt-4 px-4">
                 <h3 class="fw-bold text-dark mb-0">
-                    <i class="bi bi-pencil-square text-success me-2"></i>作業実績入力
+                    <i class="bi bi-pencil-square text-warning me-2"></i>作業実績修正
                 </h3>
-                <p class="text-muted small mt-2">日々の作業実績を正確に入力してください。</p>
+                <p class="text-muted small mt-2">修正内容を正確に入力してください。</p>
             </div>
             <div class="card-body p-4 pt-2">
                 <form method="POST" id="performanceForm">
                     <div class="row g-3">
-                        <!-- 1. 作業日 (Added max to prevent 5-digit year) -->
+                        <!-- 1. 作業日 -->
                         <div class="col-md-6">
                             <label class="form-label fw-bold">作業日</label>
-                            <input type="date" name="work_date" class="form-control" max="9999-12-31" required>
+                            <input type="date" name="work_date" class="form-control" max="9999-12-31" value="{{ record.work_date }}" required>
                         </div>
 
-                        <!-- 2. 社員コード (Autocomplete with Name Display) -->
+                        <!-- 2. 社員コード -->
                         <div class="col-md-6">
                             <label class="form-label fw-bold">社員</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
-                                <input type="text" name="employee_code" id="employee_code" class="form-control" style="flex: 1;" placeholder="コード" list="employeeList" autocomplete="off" required>
+                                <input type="text" name="employee_code" id="employee_code" class="form-control" style="flex: 1;" placeholder="コード" list="employeeList" autocomplete="off" value="{{ record.employee_code }}" required>
                                 <input type="text" id="employee_name" class="form-control bg-light text-muted" style="flex: 2;" placeholder="社員名" readonly>
                             </div>
                             <datalist id="employeeList"></datalist>
@@ -79,7 +78,7 @@
                             <select name="department_id" id="department_id" class="form-select" required>
                                 <option value="">部署を選択してください</option>
                                 {% for dept in departments %}
-                                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                <option value="{{ dept.id }}" {{ 'selected' if dept.id == current_dept_id else '' }}>{{ dept.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -87,16 +86,16 @@
                         <!-- 4. 作業 -->
                         <div class="col-md-6">
                             <label class="form-label fw-bold">作業内容</label>
-                            <select name="work_code" id="work_code" class="form-select" required disabled>
-                                <option value="">部署を選択してください</option>
+                            <select name="work_code" id="work_code" class="form-select" required>
+                                <option value="{{ record.work_code }}">{{ record.work_code }}</option>
                             </select>
                         </div>
 
                         <!-- 5. 製品 -->
                         <div class="col-md-6">
                             <label class="form-label fw-bold">対象製品</label>
-                            <select name="product_code" id="product_code" class="form-select" required disabled>
-                                <option value="">部署を選択してください</option>
+                            <select name="product_code" id="product_code" class="form-select" required>
+                                <option value="{{ record.product_code }}">{{ record.product_code }}</option>
                             </select>
                         </div>
 
@@ -105,9 +104,8 @@
                             <label class="form-label fw-bold">作業時間</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-clock"></i></span>
-                                <input type="text" name="work_hours" id="work_hours" class="form-control" placeholder="例: 0830" required>
+                                <input type="text" name="work_hours" id="work_hours" class="form-control" placeholder="例: 0830" value="{{ '%.2f'|format(record.work_hours) }}" required>
                             </div>
-                            <div class="form-text x-small mt-1">4桁入力で時刻形式に変換</div>
                         </div>
 
                         <!-- 7. 数量 -->
@@ -115,14 +113,14 @@
                             <label class="form-label fw-bold">生産数量</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-hash"></i></span>
-                                <input type="text" name="quantity" id="quantity" class="form-control" placeholder="0" required>
+                                <input type="text" name="quantity" id="quantity" class="form-control" placeholder="0" value="{{ record.quantity }}" required>
                             </div>
                         </div>
                     </div>
 
                     <div class="d-grid mt-5">
-                        <button type="submit" class="btn btn-success btn-lg btn-submit shadow-sm">
-                            <i class="bi bi-check-circle me-2"></i>この内容で登録する
+                        <button type="submit" class="btn btn-warning btn-lg btn-submit shadow-sm">
+                            <i class="bi bi-check-circle me-2"></i>更新する
                         </button>
                     </div>
                 </form>
@@ -132,21 +130,23 @@
 </div>
 
 <script>
-    // Set default date to today
-    document.querySelector('input[name="work_date"]').valueAsDate = new Date();
-
     // 1. Employee Autocomplete
     const empInput = document.getElementById('employee_code');
     const empList = document.getElementById('employeeList');
     const empNameInput = document.getElementById('employee_name');
     let currentEmployees = [];
 
-    // Load all employees on page load into memory
     async function loadAllEmployees() {
         try {
             const resp = await fetch('/api/employees');
             const data = await resp.json();
             currentEmployees = data;
+            
+            // Initial name set
+            const selectedEmp = currentEmployees.find(emp => emp.employee_code === empInput.value);
+            if (selectedEmp) {
+                empNameInput.value = `${selectedEmp.last_name} ${selectedEmp.first_name}`;
+            }
         } catch (err) {
             console.error('Error fetching employees:', err);
         }
@@ -155,8 +155,6 @@
 
     empInput.addEventListener('input', (e) => {
         const val = e.target.value;
-
-        // Show candidates only after at least 1 character is entered
         if (val.length >= 1) {
             if (empList.children.length === 0) {
                 currentEmployees.forEach(emp => {
@@ -167,11 +165,9 @@
                 });
             }
         } else {
-            // Clear list when input is empty to prevent showing candidates on click/focus
             empList.innerHTML = '';
         }
 
-        // Check if selected from list to update name display
         const selectedEmp = currentEmployees.find(emp => emp.employee_code === val);
         if (selectedEmp) {
             empNameInput.value = `${selectedEmp.last_name} ${selectedEmp.first_name}`;
@@ -185,14 +181,10 @@
     const workSelect = document.getElementById('work_code');
     const productSelect = document.getElementById('product_code');
 
-    deptSelect.addEventListener('change', async () => {
-        const deptId = deptSelect.value;
-        
+    async function updateDropdowns(deptId, initialWorkCode = null, initialProductCode = null) {
         if (!deptId) {
             workSelect.disabled = true;
             productSelect.disabled = true;
-            workSelect.innerHTML = '<option value="">部署を選択してください</option>';
-            productSelect.innerHTML = '<option value="">部署を選択してください</option>';
             return;
         }
 
@@ -209,6 +201,7 @@
                 const option = document.createElement('option');
                 option.value = w.work_code;
                 option.textContent = `${w.work_code}：${w.name}`;
+                if (initialWorkCode && w.work_code === initialWorkCode) option.selected = true;
                 workSelect.appendChild(option);
             });
             workSelect.disabled = false;
@@ -218,12 +211,22 @@
                 const option = document.createElement('option');
                 option.value = p.product_code;
                 option.textContent = `${p.product_code}：${p.name}`;
+                if (initialProductCode && p.product_code === initialProductCode) option.selected = true;
                 productSelect.appendChild(option);
             });
             productSelect.disabled = false;
         } catch (err) {
             console.error('Error fetching data:', err);
         }
+    }
+
+    // Initial load for Edit mode
+    if (deptSelect.value) {
+        updateDropdowns(deptSelect.value, "{{ record.work_code }}", "{{ record.product_code }}");
+    }
+
+    deptSelect.addEventListener('change', () => {
+        updateDropdowns(deptSelect.value);
     });
 
     // 3. Time Formatter
@@ -237,20 +240,22 @@
         }
     });
 
-    // 4. Quantity Formatter (Thousands Separator)
+    // 4. Quantity Formatter
     const qtyInput = document.getElementById('quantity');
     qtyInput.addEventListener('input', (e) => {
-        // Remove non-digits
         let val = e.target.value.replace(/[^0-9]/g, '');
         if (val === '') {
             e.target.value = '';
             return;
         }
-        // Format with commas
         e.target.value = Number(val).toLocaleString();
     });
 
-    // Strip commas before form submission
+    // Initial format for quantity
+    if (qtyInput.value) {
+        qtyInput.value = Number(qtyInput.value.replace(/,/g, '')).toLocaleString();
+    }
+
     document.getElementById('performanceForm').addEventListener('submit', (e) => {
         const val = qtyInput.value.replace(/,/g, '');
         qtyInput.value = val;

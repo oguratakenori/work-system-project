@@ -61,7 +61,7 @@
         <div class="card">
             <div class="card-header bg-info text-white">時給情報</div>
             <div class="card-body">
-                <p class="h4">現在時給: {{ employee.current_hourly_rate }} 円</p>
+                <p class="h4">現在時給: {{ "{:,}".format(employee.current_hourly_rate) }} 円</p>
                 <hr>
                 <p class="text-muted">時給履歴機能は今後のステップで実装予定です。</p>
             </div>

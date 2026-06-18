@@ -185,6 +185,7 @@ def department_new():
             return render_template('departments/edit.html', department=None)
         db.session.add(Department(department_code=code, name=name))
         db.session.commit()
+        flash('部署を登録しました。', 'success')
         return redirect(url_for('department_list'))
     return render_template('departments/edit.html', department=None)
 
@@ -194,6 +195,7 @@ def department_edit(id):
     if request.method == 'POST':
         dept.department_code, dept.name = request.form.get('department_code'), request.form.get('name')
         db.session.commit()
+        flash('部署情報を更新しました。', 'success')
         return redirect(url_for('department_list'))
     return render_template('departments/edit.html', department=dept)
 
@@ -202,6 +204,7 @@ def department_delete(id):
     dept = Department.query.get_or_404(id)
     dept.is_active = False
     db.session.commit()
+    flash('部署を削除しました。', 'success')
     return redirect(url_for('department_list'))
 
 @app.route('/positions')
@@ -223,6 +226,7 @@ def position_new():
             return render_template('positions/edit.html', position=None)
         db.session.add(Position(position_code=code, name=name))
         db.session.commit()
+        flash('役職を登録しました。', 'success')
         return redirect(url_for('position_list'))
     return render_template('positions/edit.html', position=None)
 
@@ -232,6 +236,7 @@ def position_edit(id):
     if request.method == 'POST':
         pos.position_code, pos.name = request.form.get('position_code'), request.form.get('name')
         db.session.commit()
+        flash('役職情報を更新しました。', 'success')
         return redirect(url_for('position_list'))
     return render_template('positions/edit.html', position=pos)
 
@@ -240,6 +245,7 @@ def position_delete(id):
     pos = Position.query.get_or_404(id)
     pos.is_active = False
     db.session.commit()
+    flash('役職を削除しました。', 'success')
     return redirect(url_for('position_list'))
 
 @app.route('/employees')
@@ -276,11 +282,24 @@ def employee_list():
         query = query.filter(Employee.status == status)
 
     employees = query.all()
+
+    # 候補表示用：必要なカラムのみを事前に取得（非同期通信の遅延による不具合を回避）
+    all_emp_data = db.session.query(
+        Employee.employee_code,
+        Employee.last_name,
+        Employee.first_name,
+        Employee.furigana_last,
+        Employee.furigana_first
+    ).filter(Employee.is_active == True).all()
+
     departments = Department.query.filter_by(is_active=True).all()
     positions = Position.query.filter_by(is_active=True).all()
-    
-    return render_template('employees/list.html', employees=employees, departments=departments, positions=positions)
 
+    return render_template('employees/list.html', 
+                         employees=employees, 
+                         all_emp_data=all_emp_data, 
+                         departments=departments, 
+                         positions=positions)
 @app.route('/employees/new', methods=['GET', 'POST'])
 def employee_new():
     departments, positions = Department.query.filter_by(is_active=True).all(), Position.query.filter_by(is_active=True).all()
@@ -306,6 +325,7 @@ def employee_new():
         db.session.add(HourlyRateHistory(employee_id=new_emp.id, hourly_wage=hourly_wage, start_date=datetime.now().date()))
         
         db.session.commit()
+        flash('社員を登録しました。', 'success')
         return redirect(url_for('employee_list'))
     return render_template('employees/edit.html', employee=None, departments=departments, positions=positions)
 
@@ -348,6 +368,7 @@ def employee_edit(id):
             db.session.add(HourlyRateHistory(employee_id=employee.id, hourly_wage=new_hourly_wage, start_date=datetime.now().date()))
 
         db.session.commit()
+        flash('社員情報を更新しました。', 'success')
         return redirect(url_for('employee_list'))
     return render_template('employees/edit.html', employee=employee, departments=departments, positions=positions)
 
@@ -356,6 +377,7 @@ def employee_delete(id):
     emp = Employee.query.get_or_404(id)
     emp.is_active, emp.status = False, '退職'
     db.session.commit()
+    flash('社員を削除しました。', 'success')
     return redirect(url_for('employee_list'))
 
 @app.cli.command("init-db")

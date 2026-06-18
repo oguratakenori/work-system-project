@@ -17,8 +17,10 @@
                 <div class="col-md-4 mb-3">
                     <label for="hourly_wage" class="form-label">時給</label>
                     <div class="input-group">
-                        <input type="number" class="form-control" id="hourly_wage" name="hourly_wage" 
-                               value="{{ employee.current_hourly_rate if employee else '0' }}" min="0" step="1" required>
+                        <input type="text" class="form-control" id="hourly_wage_display" 
+                               value="{{ '{:,}'.format(employee.current_hourly_rate) if employee else '0' }}" required>
+                        <input type="hidden" id="hourly_wage" name="hourly_wage" 
+                               value="{{ employee.current_hourly_rate if employee else '0' }}">
                         <span class="input-group-text">円</span>
                     </div>
                 </div>
@@ -107,6 +109,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
     statusSelect.addEventListener('change', toggleRetirementDate);
     toggleRetirementDate(); // Initial call
+
+    // 時給のカンマ区切り制御
+    const wageDisplay = document.getElementById('hourly_wage_display');
+    const wageHidden = document.getElementById('hourly_wage');
+
+    wageDisplay.addEventListener('input', function(e) {
+        // 数字以外を除去
+        let value = this.value.replace(/[^0-9]/g, '');
+        
+        // 数値に変換して隠しフィールドにセット
+        if (value === '') {
+            wageHidden.value = '0';
+        } else {
+            wageHidden.value = value;
+        }
+
+        // カンマ区切りにフォーマットして表示
+        this.value = value === '' ? '' : Number(value).toLocaleString();
+    });
+
+    // フォーカスが外れた時に空なら0を表示
+    wageDisplay.addEventListener('blur', function() {
+        if (this.value === '') {
+            this.value = '0';
+            wageHidden.value = '0';
+        }
+    });
 });
 </script>
 {% endblock %}

@@ -25,15 +25,15 @@
     <div class="row mb-3">
         <div class="col-md-4">
             <label class="form-label">単価 (円)</label>
-            <input type="number" name="price" class="form-control" value="{{ product.price if product else 0 }}">
+            <input type="text" name="price" id="price-input" class="form-control text-end" value="{{ "{:,}".format(product.price) if product else 0 }}">
         </div>
         <div class="col-md-4">
             <label class="form-label">登録日</label>
-            <input type="date" name="registered_date" class="form-control" placeholder=" " value="{{ product.registered_date if product else '' }}">
+            <input type="date" name="registered_date" class="form-control" placeholder=" " value="{{ product.registered_date if product else '' }}" max="9999-12-31">
         </div>
         <div class="col-md-4">
             <label class="form-label">廃止日</label>
-            <input type="date" name="abolished_date" class="form-control" placeholder=" " value="{{ product.abolished_date if product else '' }}">
+            <input type="date" name="abolished_date" class="form-control" placeholder=" " value="{{ product.abolished_date if product else '' }}" max="9999-12-31">
         </div>
     </div>
     <div class="mb-3">
@@ -43,4 +43,29 @@
     <button type="submit" class="btn btn-success">保存</button>
     <a href="{{ url_for('product_list') }}" class="btn btn-secondary">キャンセル</a>
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const priceInput = document.getElementById('price-input');
+    
+    const formatValue = (val) => {
+        const num = val.replace(/,/g, '').replace(/[^\d]/g, '');
+        if (num === '') return '0';
+        return parseInt(num).toLocaleString();
+    };
+
+    priceInput.addEventListener('input', function(e) {
+        const cursorPosition = e.target.selectionStart;
+        const originalLength = e.target.value.length;
+        
+        const formattedValue = formatValue(e.target.value);
+        e.target.value = formattedValue;
+        
+        const newLength = formattedValue.length;
+        let newCursorPos = cursorPosition + (newLength - originalLength);
+        if (newCursorPos < 0) newCursorPos = 0;
+        e.target.setSelectionRange(newCursorPos, newCursorPos);
+    });
+});
+</script>
 {% endblock %}
