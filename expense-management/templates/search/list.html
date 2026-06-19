@@ -55,27 +55,29 @@
     </div>
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 table-sm" style="table-layout: fixed;">
+            <div class="search-table-wrap">
+                <table class="table table-hover align-middle mb-0 table-sm search-result-table">
                     <thead class="table-light sticky-top">
                         <tr>
-                            <th style="width: 15%;">計上年月</th>
-                            <th style="width: 15%;">科目コード</th>
-                            <th style="width: 25%;">科目名</th>
-                            <th class="text-end" style="width: 15%;">金額</th>
-                            <th style="width: 15%;">登録日時</th>
-                            <th style="width: 15%;">更新日時</th>
+                            <th class="col-date">計上年月</th>
+                            <th class="col-code">科目コード</th>
+                            <th class="col-account">科目名</th>
+                            <th class="col-amount text-end">金額</th>
+                            <th class="col-datetime">登録日時</th>
+                            <th class="col-datetime">更新日時</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for record in monthly_records %}
                         <tr>
-                            <td class="ps-3">{{ record.target_date.strftime('%Y/%m') }}</td>
-                            <td>{{ record.account.code }}</td>
-                            <td>{{ record.account.name }}</td>
-                            <td class="text-end fw-bold">{{ "{:,}".format(record.amount) }}</td>
-                            <td class="small">{{ record.created_at.strftime('%Y/%m/%d %H:%M') }}</td>
-                            <td class="small">
+                            <td class="col-date ps-3">{{ record.target_date.strftime('%Y/%m') }}</td>
+                            <td class="col-code" title="{{ record.account.code }}">{{ record.account.code }}</td>
+                            <td class="col-account" title="{{ record.account.name }}">
+                                <span class="truncate-cell">{{ record.account.name }}</span>
+                            </td>
+                            <td class="col-amount text-end fw-bold">{{ "{:,}".format(record.amount) }}</td>
+                            <td class="col-datetime small">{{ record.created_at.strftime('%Y/%m/%d %H:%M') }}</td>
+                            <td class="col-datetime small">
                                 {% if record.updated_at and record.updated_at.strftime('%Y%m%d%H%M%S') != record.created_at.strftime('%Y%m%d%H%M%S') %}
                                     {{ record.updated_at.strftime('%Y/%m/%d %H:%M') }}
                                 {% else %}
@@ -97,27 +99,29 @@
     </div>
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 table-sm" style="table-layout: fixed;">
+            <div class="search-table-wrap">
+                <table class="table table-hover align-middle mb-0 table-sm search-result-table">
                     <thead class="table-light sticky-top">
                         <tr>
-                            <th style="width: 15%;">計上日</th>
-                            <th style="width: 15%;">科目コード</th>
-                            <th style="width: 25%;">科目名</th>
-                            <th class="text-end" style="width: 15%;">金額</th>
-                            <th style="width: 15%;">登録日時</th>
-                            <th style="width: 15%;">更新日時</th>
+                            <th class="col-date">計上日</th>
+                            <th class="col-code">科目コード</th>
+                            <th class="col-account">科目名</th>
+                            <th class="col-amount text-end">金額</th>
+                            <th class="col-datetime">登録日時</th>
+                            <th class="col-datetime">更新日時</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for record in daily_records %}
                         <tr>
-                            <td class="ps-3">{{ record.target_date.strftime('%Y/%m/%d') }}</td>
-                            <td>{{ record.account.code }}</td>
-                            <td>{{ record.account.name }}</td>
-                            <td class="text-end fw-bold">{{ "{:,}".format(record.amount) }}</td>
-                            <td class="small">{{ record.created_at.strftime('%Y/%m/%d %H:%M') }}</td>
-                            <td class="small">
+                            <td class="col-date ps-3">{{ record.target_date.strftime('%Y/%m/%d') }}</td>
+                            <td class="col-code" title="{{ record.account.code }}">{{ record.account.code }}</td>
+                            <td class="col-account" title="{{ record.account.name }}">
+                                <span class="truncate-cell">{{ record.account.name }}</span>
+                            </td>
+                            <td class="col-amount text-end fw-bold">{{ "{:,}".format(record.amount) }}</td>
+                            <td class="col-datetime small">{{ record.created_at.strftime('%Y/%m/%d %H:%M') }}</td>
+                            <td class="col-datetime small">
                                 {% if record.updated_at and record.updated_at.strftime('%Y%m%d%H%M%S') != record.created_at.strftime('%Y%m%d%H%M%S') %}
                                     {{ record.updated_at.strftime('%Y/%m/%d %H:%M') }}
                                 {% else %}
@@ -148,6 +152,33 @@
     }
     .sticky-top {
         z-index: 10;
+    }
+    .search-table-wrap {
+        width: 100%;
+    }
+    .search-result-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+    .search-result-table th,
+    .search-result-table td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    .search-result-table .col-date { width: 14%; }
+    .search-result-table .col-code { width: 13%; }
+    .search-result-table .col-account { width: 31%; }
+    .search-result-table .col-amount { width: 12%; }
+    .search-result-table .col-datetime { width: 15%; }
+    .truncate-cell {
+        display: block;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .results-container::-webkit-scrollbar {
         width: 8px;

@@ -47,6 +47,32 @@
     }
     .code-badge { font-family: monospace; color: #6c757d; font-size: 0.75rem; }
     .name-text { font-size: 0.9rem; font-weight: 500; }
+    .report-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+    .report-table th,
+    .report-table td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    .report-table .col-date { width: 11%; }
+    .report-table .col-employee { width: 18%; }
+    .report-table .col-dept { width: 14%; }
+    .report-table .col-work { width: 22%; }
+    .report-table .col-product { width: 18%; }
+    .report-table .col-hours { width: 7%; }
+    .report-table .col-quantity { width: 10%; }
+    .truncate-cell {
+        display: block;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 </style>
 
 <div class="back-nav mb-3">
@@ -138,43 +164,40 @@
 
 <!-- Results Table -->
 <div class="table-container">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+    <div class="report-table-wrap">
+        <table class="table table-hover align-middle mb-0 report-table">
             <thead>
                 <tr>
-                    <th class="ps-4">作業日</th>
-                    <th>社員</th>
-                    <th>部署</th>
-                    <th>作業</th>
-                    <th>製品</th>
-                    <th class="text-end">時間</th>
-                    <th class="pe-4 text-end">数量</th>
+                    <th class="col-date ps-4">作業日</th>
+                    <th class="col-employee">社員</th>
+                    <th class="col-dept">部署</th>
+                    <th class="col-work">作業</th>
+                    <th class="col-product">製品</th>
+                    <th class="col-hours text-end">時間</th>
+                    <th class="col-quantity pe-4 text-end">数量</th>
                 </tr>
             </thead>
             <tbody>
                 {% for record in records %}
                 <tr>
-                    <td class="ps-4 text-nowrap">{{ record.work_date }}</td>
-                    <td>
-                        <div class="name-text">{{ emp_name_map.get(record.employee_code, '不明') }}</div>
-                        <div class="code-badge">{{ record.employee_code }}</div>
+                    <td class="col-date ps-4 text-nowrap">{{ record.work_date }}</td>
+                    <td class="col-employee" title="{{ emp_name_map.get(record.employee_code, '不明') }} ({{ record.employee_code }})">
+                        <span class="truncate-cell name-text">{{ emp_name_map.get(record.employee_code, '不明') }} ({{ record.employee_code }})</span>
                     </td>
-                    <td>
+                    <td class="col-dept" title="{{ dept_map.get(work_to_dept_id.get(record.work_code), '未設定') }}">
                         {% set d_id = work_to_dept_id.get(record.work_code) %}
-                        <span class="small">{{ dept_map.get(d_id, '未設定') }}</span>
+                        <span class="truncate-cell small">{{ dept_map.get(d_id, '未設定') }}</span>
                     </td>
-                    <td>
-                        <div class="name-text">{{ work_name_map.get(record.work_code, '不明') }}</div>
-                        <div class="code-badge">{{ record.work_code }}</div>
+                    <td class="col-work" title="{{ work_name_map.get(record.work_code, '不明') }} ({{ record.work_code }})">
+                        <span class="truncate-cell name-text">{{ work_name_map.get(record.work_code, '不明') }} ({{ record.work_code }})</span>
                     </td>
-                    <td>
-                        <div class="name-text">{{ prod_name_map.get(record.product_code, '不明') }}</div>
-                        <div class="code-badge">{{ record.product_code }}</div>
+                    <td class="col-product" title="{{ prod_name_map.get(record.product_code, '不明') }} ({{ record.product_code }})">
+                        <span class="truncate-cell name-text">{{ prod_name_map.get(record.product_code, '不明') }} ({{ record.product_code }})</span>
                     </td>
-                    <td class="text-end">
+                    <td class="col-hours text-end">
                         <span class="fw-bold">{{ "%.1f"|format(record.work_hours) }}</span><small class="text-muted ms-1">h</small>
                     </td>
-                    <td class="pe-4 text-end">
+                    <td class="col-quantity pe-4 text-end">
                         <span class="badge bg-primary bg-opacity-10 text-primary px-3">{{ record.quantity }}</span>
                     </td>
                 </tr>
