@@ -17,6 +17,31 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-default-key-please-chang
 
 db.init_app(app)
 
+PER_PAGE_OPTIONS = (10, 20, 50, 100)
+DEFAULT_PER_PAGE = 20
+
+def get_pagination_params():
+    try:
+        page = int(request.args.get('page', 1))
+    except (TypeError, ValueError):
+        page = 1
+    if page < 1:
+        page = 1
+
+    try:
+        per_page = int(request.args.get('per_page', DEFAULT_PER_PAGE))
+    except (TypeError, ValueError):
+        per_page = DEFAULT_PER_PAGE
+    if per_page not in PER_PAGE_OPTIONS:
+        per_page = DEFAULT_PER_PAGE
+
+    return page, per_page
+
+def get_pagination_args():
+    args = request.args.to_dict()
+    args.pop('page', None)
+    return args
+
 @app.route('/')
 def index():
     employee_count = Employee.query.filter_by(is_active=True).count()
@@ -176,8 +201,14 @@ def department_list():
     name = request.args.get('name')
     if code: query = query.filter(Department.department_code.like(f"%{code}%"))
     if name: query = query.filter(Department.name.like(f"%{name}%"))
-    departments = query.all()
-    return render_template('departments/list.html', departments=departments)
+    page, per_page = get_pagination_params()
+    departments = query.order_by(Department.department_code).paginate(page=page, per_page=per_page, error_out=False)
+    return render_template(
+        'departments/list.html',
+        departments=departments,
+        per_page_options=PER_PAGE_OPTIONS,
+        pagination_args=get_pagination_args()
+    )
 
 @app.route('/departments/new', methods=['GET', 'POST'])
 def department_new():
@@ -205,7 +236,10 @@ def department_edit(id):
 @app.route('/departments/<int:id>/delete', methods=['POST'])
 def department_delete(id):
     dept = Department.query.get_or_404(id)
-    dept.is_active = False
+    if Employee.query.filter_by(department_id=dept.id).first():
+        flash('この部署を使用している社員がいるため削除できません。先に社員の所属部署を変更してください。', 'error')
+        return redirect(url_for('department_list'))
+    db.session.delete(dept)
     db.session.commit()
     flash('部署を削除しました。', 'success')
     return redirect(url_for('department_list'))
@@ -217,8 +251,14 @@ def position_list():
     name = request.args.get('name')
     if code: query = query.filter(Position.position_code.like(f"%{code}%"))
     if name: query = query.filter(Position.name.like(f"%{name}%"))
-    positions = query.all()
-    return render_template('positions/list.html', positions=positions)
+    page, per_page = get_pagination_params()
+    positions = query.order_by(Position.position_code).paginate(page=page, per_page=per_page, error_out=False)
+    return render_template(
+        'positions/list.html',
+        positions=positions,
+        per_page_options=PER_PAGE_OPTIONS,
+        pagination_args=get_pagination_args()
+    )
 
 @app.route('/positions/new', methods=['GET', 'POST'])
 def position_new():
@@ -246,7 +286,10 @@ def position_edit(id):
 @app.route('/positions/<int:id>/delete', methods=['POST'])
 def position_delete(id):
     pos = Position.query.get_or_404(id)
-    pos.is_active = False
+    if Employee.query.filter_by(position_id=pos.id).first():
+        flash('この役職を使用している社員がいるため削除できません。先に社員の役職を変更してください。', 'error')
+        return redirect(url_for('position_list'))
+    db.session.delete(pos)
     db.session.commit()
     flash('役職を削除しました。', 'success')
     return redirect(url_for('position_list'))
@@ -284,7 +327,8 @@ def employee_list():
     if status:
         query = query.filter(Employee.status == status)
 
-    employees = query.all()
+    page, per_page = get_pagination_params()
+    employees = query.order_by(Employee.employee_code).paginate(page=page, per_page=per_page, error_out=False)
 
     # 候補表示用：必要なカラムのみを事前に取得（非同期通信の遅延による不具合を回避）
     all_emp_data = db.session.query(
@@ -302,7 +346,9 @@ def employee_list():
                          employees=employees, 
                          all_emp_data=all_emp_data, 
                          departments=departments, 
-                         positions=positions)
+                         positions=positions,
+                         per_page_options=PER_PAGE_OPTIONS,
+                         pagination_args=get_pagination_args())
 @app.route('/employees/new', methods=['GET', 'POST'])
 def employee_new():
     departments, positions = Department.query.filter_by(is_active=True).all(), Position.query.filter_by(is_active=True).all()
@@ -378,7 +424,8 @@ def employee_edit(id):
 @app.route('/employees/<int:id>/delete', methods=['POST'])
 def employee_delete(id):
     emp = Employee.query.get_or_404(id)
-    emp.is_active, emp.status = False, '退職'
+    HourlyRateHistory.query.filter_by(employee_id=emp.id).delete(synchronize_session=False)
+    db.session.delete(emp)
     db.session.commit()
     flash('社員を削除しました。', 'success')
     return redirect(url_for('employee_list'))
