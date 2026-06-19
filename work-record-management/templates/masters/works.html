@@ -1,6 +1,34 @@
 {% extends "layout.html" %}
 
 {% block content %}
+<style>
+    .list-table { table-layout: fixed; width: 100%; }
+    .list-table th,
+    .list-table td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    .list-table .col-code { width: 16%; }
+    .list-table .col-name { width: 38%; }
+    .list-table .col-dept { width: 28%; }
+    .list-table .col-actions { width: 18%; }
+    .list-table td.col-actions { overflow: visible; white-space: nowrap; }
+    .truncate-cell {
+        display: block;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .list-actions { display: flex; flex-wrap: nowrap; gap: 0.25rem; }
+    .list-actions .btn { white-space: nowrap; }
+    .list-toolbar { gap: 0.75rem; }
+    .list-toolbar .pagination { margin-bottom: 0; }
+</style>
+
 <div class="back-nav d-flex justify-content-between align-items-center mb-4">
     <a href="{{ url_for('index') }}" class="btn btn-outline-secondary shadow-sm">
         <i class="bi bi-house"></i> メニューへ戻る
@@ -15,6 +43,8 @@
 <div class="card mb-4 shadow-sm border-0">
     <div class="card-body">
         <form method="GET" class="row g-3">
+            <input type="hidden" name="page" value="1">
+            <input type="hidden" name="per_page" value="{{ works.per_page }}">
             <div class="col-md-3">
                 <label class="form-label small fw-bold">作業ID</label>
                 <input type="text" name="work_code" class="form-control" placeholder="W000" value="{{ request.args.get('work_code', '') }}">
@@ -40,95 +70,170 @@
     </div>
 </div>
 
-<table class="table table-striped table-hover">
-    <thead>
-        <tr>
-            <th>作業ID</th>
-            <th>作業名</th>
-            <th>担当部署</th>
-            <th>操作</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for work in works %}
-        <tr>
-            <td>{{ work.work_code }}</td>
-            <td>{{ work.name }}</td>
-            <td>{{ dept_map.get(work.department_id, '未設定') }}</td>
-            <td>
-                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ work.id }}">
-                    修正
-                </button>
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <div class="list-toolbar d-flex justify-content-between align-items-center flex-wrap mb-2">
+            <div class="text-muted small">
+                全 {{ works.total }} 件中
+                {% if works.total %}
+                {{ works.first }} - {{ works.last }} 件を表示
+                {% else %}
+                0 件を表示
+                {% endif %}
+            </div>
+            {% if works.pages > 1 %}
+            <nav aria-label="作業マスタページ上部">
+                <ul class="pagination pagination-sm">
+                    <li class="page-item {{ 'disabled' if not works.has_prev else '' }}">
+                        <a class="page-link" href="{{ url_for('manage_works', page=works.prev_num, **pagination_args) }}">前へ</a>
+                    </li>
+                    {% for page_num in works.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                        <li class="page-item {{ 'active' if page_num == works.page else '' }}">
+                            <a class="page-link" href="{{ url_for('manage_works', page=page_num, **pagination_args) }}">{{ page_num }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {{ 'disabled' if not works.has_next else '' }}">
+                        <a class="page-link" href="{{ url_for('manage_works', page=works.next_num, **pagination_args) }}">次へ</a>
+                    </li>
+                </ul>
+            </nav>
+            {% endif %}
+            <form method="GET" action="{{ url_for('manage_works') }}" class="d-flex align-items-center gap-2">
+                <input type="hidden" name="page" value="1">
+                <input type="hidden" name="work_code" value="{{ request.args.get('work_code', '') }}">
+                <input type="hidden" name="name" value="{{ request.args.get('name', '') }}">
+                <input type="hidden" name="department_id" value="{{ request.args.get('department_id', '') }}">
+                <label for="per_page_top" class="form-label mb-0 text-muted small">表示件数</label>
+                <select class="form-select form-select-sm" id="per_page_top" name="per_page" onchange="this.form.submit()">
+                    {% for option in per_page_options %}
+                    <option value="{{ option }}" {{ 'selected' if works.per_page == option else '' }}>{{ option }}件</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
 
-                <!-- Edit Modal -->
-                <div class="modal fade" id="editModal{{ work.id }}" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <form action="{{ url_for('edit_work', id=work.id) }}" method="POST">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">作業情報修正</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body text-start">
-                                    <div class="mb-3">
-                                        <label class="form-label">作業ID</label>
-                                        <input type="text" name="work_code" value="{{ work.work_code }}" class="form-control" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">作業名</label>
-                                        <input type="text" name="name" value="{{ work.name }}" class="form-control" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">担当部署</label>
-                                        <select name="department_id" class="form-select">
-                                            <option value="">なし</option>
-                                            {% for dept in departments %}
-                                            <option value="{{ dept.id }}" {{ 'selected' if work.department_id == dept.id else '' }}>{{ dept.name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                                    <button type="submit" class="btn btn-primary">更新</button>
-                                </div>
-                            </form>
+        <table class="table table-striped table-hover list-table">
+            <thead>
+                <tr>
+                    <th class="col-code">作業ID</th>
+                    <th class="col-name">作業名</th>
+                    <th class="col-dept">担当部署</th>
+                    <th class="col-actions">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for work in works.items %}
+                <tr>
+                    <td class="col-code" title="{{ work.work_code }}">{{ work.work_code }}</td>
+                    <td class="col-name" title="{{ work.name }}">
+                        <span class="truncate-cell">{{ work.name }}</span>
+                    </td>
+                    <td class="col-dept" title="{{ dept_map.get(work.department_id, '未設定') }}">
+                        <span class="truncate-cell">{{ dept_map.get(work.department_id, '未設定') }}</span>
+                    </td>
+                    <td class="col-actions">
+                        <div class="list-actions">
+                            <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ work.id }}">
+                                修正
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal{{ work.id }}">
+                                削除
+                            </button>
                         </div>
-                    </div>
-                </div>
 
-                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal{{ work.id }}">
-                    削除
-                </button>
-
-                <!-- Delete Confirmation Modal -->
-                <div class="modal fade" id="deleteModal{{ work.id }}" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header bg-danger text-white">
-                                <h5 class="modal-title">削除の確認</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body text-start">
-                                <p>この作業を削除しますか？</p>
-                                <p class="text-danger fw-bold small">
-                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>この操作は取り消せません。
-                                </p>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                                <a href="{{ url_for('delete_work', id=work.id) }}" class="btn btn-danger">削除</a>
+                        <!-- Edit Modal -->
+                        <div class="modal fade" id="editModal{{ work.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form action="{{ url_for('edit_work', id=work.id) }}" method="POST">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">作業情報修正</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body text-start">
+                                            <div class="mb-3">
+                                                <label class="form-label">作業ID</label>
+                                                <input type="text" name="work_code" value="{{ work.work_code }}" class="form-control" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">作業名</label>
+                                                <input type="text" name="name" value="{{ work.name }}" class="form-control" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">担当部署</label>
+                                                <select name="department_id" class="form-select">
+                                                    <option value="">なし</option>
+                                                    {% for dept in departments %}
+                                                    <option value="{{ dept.id }}" {{ 'selected' if work.department_id == dept.id else '' }}>{{ dept.name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                                            <button type="submit" class="btn btn-primary">更新</button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="4" class="text-center text-muted">データが見つかりませんでした</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+
+                        <!-- Delete Confirmation Modal -->
+                        <div class="modal fade" id="deleteModal{{ work.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-danger text-white">
+                                        <h5 class="modal-title">削除の確認</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body text-start">
+                                        <p>この作業を削除しますか？</p>
+                                        <p class="text-danger fw-bold small">
+                                            <i class="bi bi-exclamation-triangle-fill me-1"></i>この操作は取り消せません。
+                                        </p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                                        <a href="{{ url_for('delete_work', id=work.id) }}" class="btn btn-danger">削除</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted">データが見つかりませんでした</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if works.pages > 1 %}
+        <nav aria-label="作業マスタページ下部">
+            <ul class="pagination justify-content-center mb-0">
+                <li class="page-item {{ 'disabled' if not works.has_prev else '' }}">
+                    <a class="page-link" href="{{ url_for('manage_works', page=works.prev_num, **pagination_args) }}">前へ</a>
+                </li>
+                {% for page_num in works.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                    <li class="page-item {{ 'active' if page_num == works.page else '' }}">
+                        <a class="page-link" href="{{ url_for('manage_works', page=page_num, **pagination_args) }}">{{ page_num }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item {{ 'disabled' if not works.has_next else '' }}">
+                    <a class="page-link" href="{{ url_for('manage_works', page=works.next_num, **pagination_args) }}">次へ</a>
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

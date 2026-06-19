@@ -23,6 +23,31 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
 
+PER_PAGE_OPTIONS = (10, 20, 50, 100)
+DEFAULT_PER_PAGE = 20
+
+def get_pagination_params():
+    try:
+        page = int(request.args.get('page', 1))
+    except (TypeError, ValueError):
+        page = 1
+    if page < 1:
+        page = 1
+
+    try:
+        per_page = int(request.args.get('per_page', DEFAULT_PER_PAGE))
+    except (TypeError, ValueError):
+        per_page = DEFAULT_PER_PAGE
+    if per_page not in PER_PAGE_OPTIONS:
+        per_page = DEFAULT_PER_PAGE
+
+    return page, per_page
+
+def get_pagination_args():
+    args = request.args.to_dict()
+    args.pop('page', None)
+    return args
+
 def seed_data():
     if crud.get_all_works() == []:
         # Seed Works
@@ -42,10 +67,18 @@ def manage_works():
         'name': request.args.get('name'),
         'department_id': request.args.get('department_id')
     }
-    works = crud.get_works(filters)
+    page, per_page = get_pagination_params()
+    works = crud.get_works_page(filters, page=page, per_page=per_page)
     departments = crud.get_external_departments()
     dept_map = crud.get_department_map()
-    return render_template('masters/works.html', works=works, departments=departments, dept_map=dept_map)
+    return render_template(
+        'masters/works.html',
+        works=works,
+        departments=departments,
+        dept_map=dept_map,
+        per_page_options=PER_PAGE_OPTIONS,
+        pagination_args=get_pagination_args()
+    )
 
 @app.route('/masters/works/new', methods=['GET', 'POST'])
 def new_work():
@@ -163,7 +196,8 @@ def performance_list():
         'department_id': request.args.get('department_id'),
         'work_code': request.args.get('work_code')
     }
-    records = crud.get_performance_records(filters)
+    page, per_page = get_pagination_params()
+    records = crud.get_performance_records_page(filters, page=page, per_page=per_page)
     
     departments = crud.get_external_departments()
     # Filter works for the dropdown if department is selected
@@ -182,7 +216,9 @@ def performance_list():
                            works=works,
                            emp_name_map=emp_name_map,
                            work_name_map=work_name_map,
-                           work_dept_map=work_dept_map)
+                           work_dept_map=work_dept_map,
+                           per_page_options=PER_PAGE_OPTIONS,
+                           pagination_args=get_pagination_args())
 
 # 5. Reports
 @app.route('/reports', methods=['GET'])

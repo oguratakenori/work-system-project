@@ -18,6 +18,31 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-default-key-please-chang
 
 db.init_app(app)
 
+PER_PAGE_OPTIONS = (10, 20, 50, 100)
+DEFAULT_PER_PAGE = 20
+
+def get_pagination_params():
+    try:
+        page = int(request.args.get('page', 1))
+    except (TypeError, ValueError):
+        page = 1
+    if page < 1:
+        page = 1
+
+    try:
+        per_page = int(request.args.get('per_page', DEFAULT_PER_PAGE))
+    except (TypeError, ValueError):
+        per_page = DEFAULT_PER_PAGE
+    if per_page not in PER_PAGE_OPTIONS:
+        per_page = DEFAULT_PER_PAGE
+
+    return page, per_page
+
+def get_pagination_args():
+    args = request.args.to_dict()
+    args.pop('page', None)
+    return args
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -170,13 +195,30 @@ def correction_search():
     if to_date:
         query = query.filter(ExpenseRecord.target_date <= datetime.strptime(to_date, '%Y-%m-%d').date())
     
-    records = query.order_by(ExpenseRecord.target_date.desc(), ExpenseRecord.id.desc()).all()
-    return render_template('correction/list.html', records=records)
+    page, per_page = get_pagination_params()
+    records = query.order_by(
+        ExpenseRecord.target_date.desc(),
+        ExpenseRecord.id.desc()
+    ).paginate(page=page, per_page=per_page, error_out=False)
+    return render_template(
+        'correction/list.html',
+        records=records,
+        per_page_options=PER_PAGE_OPTIONS,
+        pagination_args=get_pagination_args()
+    )
 
 @app.route('/correction/deleted')
 def correction_deleted_list():
-    records = ExpenseRecord.query.filter_by(is_deleted=True).order_by(ExpenseRecord.deleted_at.desc()).all()
-    return render_template('correction/deleted_list.html', records=records)
+    page, per_page = get_pagination_params()
+    records = ExpenseRecord.query.filter_by(is_deleted=True).order_by(
+        ExpenseRecord.deleted_at.desc()
+    ).paginate(page=page, per_page=per_page, error_out=False)
+    return render_template(
+        'correction/deleted_list.html',
+        records=records,
+        per_page_options=PER_PAGE_OPTIONS,
+        pagination_args=get_pagination_args()
+    )
 
 @app.route('/correction/<int:id>/edit', methods=['GET', 'POST'])
 def correction_edit(id):

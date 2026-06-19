@@ -1,6 +1,43 @@
 {% extends "layout.html" %}
 
 {% block content %}
+<style>
+    .list-table { table-layout: fixed; width: 100%; }
+    .list-table th,
+    .list-table td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    .list-table .col-unit { width: 11%; }
+    .list-table .col-date { width: 13%; }
+    .list-table .col-account { width: 28%; }
+    .list-table .col-amount { width: 14%; }
+    .list-table .col-deleted { width: 16%; }
+    .list-table .col-actions { width: 18%; }
+    .list-table td.col-actions { overflow: visible; white-space: nowrap; }
+    .truncate-cell {
+        display: block;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .list-actions { display: flex; flex-wrap: nowrap; justify-content: center; gap: 0.25rem; }
+    .list-actions .btn { white-space: nowrap; }
+    .list-toolbar { gap: 0.75rem; }
+    .list-toolbar .pagination { margin-bottom: 0; }
+    .card:hover {
+        transform: none !important;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+    }
+    .btn-xs { font-size: 0.75rem; }
+    .bg-info-subtle { background-color: #e0f7fa; }
+    .bg-success-subtle { background-color: #e8f5e9; }
+</style>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <a href="{{ url_for('correction_search') }}" class="btn btn-outline-secondary shadow-sm px-3">
         <i class="bi bi-arrow-left"></i> 修正一覧へ戻る
@@ -17,59 +54,121 @@
 </div>
 
 <div class="card shadow-sm border-0">
-    <div class="card-body p-0">
-        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
-            <table class="table table-hover align-middle mb-0 table-sm">
-                <thead class="table-light sticky-top">
-                    <tr>
-                        <th class="ps-3">計上単位</th>
-                        <th>計上日</th>
-                        <th>科目名</th>
-                        <th class="text-end">金額</th>
-                        <th>削除日時</th>
-                        <th class="text-center" style="width: 150px;">操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for record in records %}
-                    <tr>
-                        <td class="ps-3">
-                            {% if record.unit == 'monthly' %}
-                            <span class="badge bg-info-subtle text-info border border-info">月次</span>
-                            {% else %}
-                            <span class="badge bg-success-subtle text-success border border-success">日次</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ record.target_date.strftime('%Y/%m/%d') }}</td>
-                        <td>
-                            <span class="small text-muted d-block">{{ record.account.code }}</span>
-                            {{ record.account.name }}
-                        </td>
-                        <td class="text-end fw-bold">{{ "{:,}".format(record.amount) }}</td>
-                        <td class="small text-danger">{{ record.deleted_at.strftime('%Y/%m/%d %H:%M') if record.deleted_at else '不明' }}</td>
-                        <td class="text-center">
-                            <form id="restore-form-{{ record.id }}" action="{{ url_for('correction_restore', id=record.id) }}" method="POST" style="display:inline;">
+    <div class="card-body">
+        <div class="list-toolbar d-flex justify-content-between align-items-center flex-wrap mb-2">
+            <div class="text-muted small">
+                全 {{ records.total }} 件中
+                {% if records.total %}
+                {{ records.first }} - {{ records.last }} 件を表示
+                {% else %}
+                0 件を表示
+                {% endif %}
+            </div>
+            {% if records.pages > 1 %}
+            <nav aria-label="削除済み経費ページ上部">
+                <ul class="pagination pagination-sm">
+                    <li class="page-item {{ 'disabled' if not records.has_prev else '' }}">
+                        <a class="page-link" href="{{ url_for('correction_deleted_list', page=records.prev_num, **pagination_args) }}">前へ</a>
+                    </li>
+                    {% for page_num in records.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                        <li class="page-item {{ 'active' if page_num == records.page else '' }}">
+                            <a class="page-link" href="{{ url_for('correction_deleted_list', page=page_num, **pagination_args) }}">{{ page_num }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {{ 'disabled' if not records.has_next else '' }}">
+                        <a class="page-link" href="{{ url_for('correction_deleted_list', page=records.next_num, **pagination_args) }}">次へ</a>
+                    </li>
+                </ul>
+            </nav>
+            {% endif %}
+            <form method="GET" action="{{ url_for('correction_deleted_list') }}" class="d-flex align-items-center gap-2">
+                <input type="hidden" name="page" value="1">
+                <label for="per_page_top" class="form-label mb-0 text-muted small">表示件数</label>
+                <select class="form-select form-select-sm" id="per_page_top" name="per_page" onchange="this.form.submit()">
+                    {% for option in per_page_options %}
+                    <option value="{{ option }}" {{ 'selected' if records.per_page == option else '' }}>{{ option }}件</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+
+        <table class="table table-hover align-middle mb-0 table-sm list-table">
+            <thead class="table-light">
+                <tr>
+                    <th class="col-unit ps-3">計上単位</th>
+                    <th class="col-date">計上日</th>
+                    <th class="col-account">科目名</th>
+                    <th class="col-amount text-end">金額</th>
+                    <th class="col-deleted">削除日時</th>
+                    <th class="col-actions text-center">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records.items %}
+                <tr>
+                    <td class="col-unit ps-3">
+                        {% if record.unit == 'monthly' %}
+                        <span class="badge bg-info-subtle text-info border border-info">月次</span>
+                        {% else %}
+                        <span class="badge bg-success-subtle text-success border border-success">日次</span>
+                        {% endif %}
+                    </td>
+                    <td class="col-date">{{ record.target_date.strftime('%Y/%m/%d') }}</td>
+                    <td class="col-account" title="{{ record.account.code }} {{ record.account.name }}">
+                        <span class="truncate-cell">{{ record.account.code }} {{ record.account.name }}</span>
+                    </td>
+                    <td class="col-amount text-end fw-bold">{{ "{:,}".format(record.amount) }}</td>
+                    <td class="col-deleted small text-danger">{{ record.deleted_at.strftime('%Y/%m/%d %H:%M') if record.deleted_at else '不明' }}</td>
+                    <td class="col-actions text-center">
+                        <div class="list-actions">
+                            <form id="restore-form-{{ record.id }}" action="{{ url_for('correction_restore', id=record.id) }}" method="POST" class="d-inline">
                                 <button type="button" class="btn btn-xs btn-outline-success py-1 px-2" title="復元"
                                         onclick="showRestoreModal({{ record.id }})">
                                     <i class="bi bi-arrow-counterclockwise me-1"></i>復元
                                 </button>
                             </form>
-                            <form id="purge-form-{{ record.id }}" action="{{ url_for('correction_purge', id=record.id) }}" method="POST" style="display:inline;">
-                                <button type="button" class="btn btn-xs btn-outline-danger py-1 px-2" title="完全削除" 
+                            <form id="purge-form-{{ record.id }}" action="{{ url_for('correction_purge', id=record.id) }}" method="POST" class="d-inline">
+                                <button type="button" class="btn btn-xs btn-outline-danger py-1 px-2" title="完全削除"
                                         onclick="showPurgeModal({{ record.id }})">
                                     <i class="bi bi-trash3-fill me-1"></i>完全削除
                                 </button>
                             </form>
-                        </td>
-                    </tr>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">削除済みのデータはありません。</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if records.pages > 1 %}
+        <nav aria-label="削除済み経費ページ下部" class="mt-2">
+            <ul class="pagination justify-content-center mb-0">
+                <li class="page-item {{ 'disabled' if not records.has_prev else '' }}">
+                    <a class="page-link" href="{{ url_for('correction_deleted_list', page=records.prev_num, **pagination_args) }}">前へ</a>
+                </li>
+                {% for page_num in records.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                    <li class="page-item {{ 'active' if page_num == records.page else '' }}">
+                        <a class="page-link" href="{{ url_for('correction_deleted_list', page=page_num, **pagination_args) }}">{{ page_num }}</a>
+                    </li>
                     {% else %}
-                    <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">削除済みのデータはありません。</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item {{ 'disabled' if not records.has_next else '' }}">
+                    <a class="page-link" href="{{ url_for('correction_deleted_list', page=records.next_num, **pagination_args) }}">次へ</a>
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
     </div>
 </div>
 
@@ -107,7 +206,7 @@
             </div>
             <div class="modal-body p-4">
                 <p class="mb-0 fw-bold">この経費データを完全削除しますか？</p>
-                <p class="text-danger small mt-2 mb-0">この操作は取り消せません。<br>復元もできなくなります。</p>
+                <p class="text-danger small mt-2 mb-0">この操作は取り消せません。復元もできなくなります。</p>
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">キャンセル</button>
@@ -116,21 +215,6 @@
         </div>
     </div>
 </div>
-
-<style>
-    .card:hover {
-        transform: none !important;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
-    }
-    .btn-xs {
-        font-size: 0.75rem;
-    }
-    .sticky-top {
-        z-index: 10;
-    }
-    .bg-info-subtle { background-color: #e0f7fa; }
-    .bg-success-subtle { background-color: #e8f5e9; }
-</style>
 
 <script>
     let currentPurgeId = null;
@@ -153,7 +237,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize Purge Modal
         const purgeModalElement = document.getElementById('purgeModal');
         if (purgeModalElement) {
             purgeModalInstance = new bootstrap.Modal(purgeModalElement);
@@ -171,7 +254,6 @@
             });
         }
 
-        // Initialize Restore Modal
         const restoreModalElement = document.getElementById('restoreModal');
         if (restoreModalElement) {
             restoreModalInstance = new bootstrap.Modal(restoreModalElement);

@@ -1,63 +1,189 @@
 {% extends "layout.html" %}
 {% block content %}
+<style>
+    .list-table { table-layout: fixed; width: 100%; }
+    .list-table th,
+    .list-table td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    .list-table .col-dept { width: 13%; }
+    .list-table .col-code { width: 12%; }
+    .list-table .col-name { width: 23%; }
+    .list-table .col-price { width: 9%; }
+    .list-table .col-date { width: 10%; }
+    .list-table .col-actions { width: 13%; }
+    .list-table td.col-actions { overflow: visible; white-space: nowrap; }
+    .truncate-cell {
+        display: block;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .list-actions { display: flex; flex-wrap: nowrap; gap: 0.25rem; }
+    .list-actions .btn { white-space: nowrap; }
+    .list-toolbar { gap: 0.75rem; }
+    .list-toolbar .pagination { margin-bottom: 0; }
+</style>
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>製品マスタ一覧</h2>
     <a href="{{ url_for('product_new') }}" class="btn btn-success">新規登録</a>
 </div>
-<div class="card mb-3 bg-light"><div class="card-body">
-    <form method="GET" class="row g-2">
-        <div class="col-md-3">
-            <select name="department_id" class="form-select">
-                <option value="">全ての部署</option>
-                {% for d in departments %}
-                <option value="{{ d.id }}" {{ 'selected' if request.args.get('department_id') == d.id|string else '' }}>{{ d.name }}</option>
+
+<div class="card mb-3 bg-light">
+    <div class="card-body">
+        <form method="GET" class="row g-2">
+            <input type="hidden" name="page" value="1">
+            <input type="hidden" name="per_page" value="{{ products.per_page }}">
+            <div class="col-md-3">
+                <select name="department_id" class="form-select">
+                    <option value="">全ての部署</option>
+                    {% for d in departments %}
+                    <option value="{{ d.id }}" {{ 'selected' if request.args.get('department_id') == d.id|string else '' }}>{{ d.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="text" name="product_code" class="form-control" placeholder="製品コード" value="{{ request.args.get('product_code', '') }}" list="product-codes">
+                <datalist id="product-codes">
+                    {% for p_code in all_product_codes %}
+                    <option value="{{ p_code }}">
+                    {% endfor %}
+                </datalist>
+            </div>
+            <div class="col-md-4">
+                <input type="text" name="name" class="form-control" placeholder="製品名" value="{{ request.args.get('name', '') }}">
+            </div>
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-search"></i></button>
+                <a href="{{ url_for('product_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <div class="list-toolbar d-flex justify-content-between align-items-center flex-wrap mb-2">
+            <div class="text-muted small">
+                全 {{ products.total }} 件中
+                {% if products.total %}
+                {{ products.first }} - {{ products.last }} 件を表示
+                {% else %}
+                0 件を表示
+                {% endif %}
+            </div>
+            {% if products.pages > 1 %}
+            <nav aria-label="製品一覧ページ上部">
+                <ul class="pagination pagination-sm">
+                    <li class="page-item {{ 'disabled' if not products.has_prev else '' }}">
+                        <a class="page-link" href="{{ url_for('product_list', page=products.prev_num, **pagination_args) }}">前へ</a>
+                    </li>
+                    {% for page_num in products.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                        <li class="page-item {{ 'active' if page_num == products.page else '' }}">
+                            <a class="page-link" href="{{ url_for('product_list', page=page_num, **pagination_args) }}">{{ page_num }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {{ 'disabled' if not products.has_next else '' }}">
+                        <a class="page-link" href="{{ url_for('product_list', page=products.next_num, **pagination_args) }}">次へ</a>
+                    </li>
+                </ul>
+            </nav>
+            {% endif %}
+            <form method="GET" action="{{ url_for('product_list') }}" class="d-flex align-items-center gap-2">
+                <input type="hidden" name="page" value="1">
+                <input type="hidden" name="department_id" value="{{ request.args.get('department_id', '') }}">
+                <input type="hidden" name="product_code" value="{{ request.args.get('product_code', '') }}">
+                <input type="hidden" name="name" value="{{ request.args.get('name', '') }}">
+                <label for="per_page_top" class="form-label mb-0 text-muted small">表示件数</label>
+                <select class="form-select form-select-sm" id="per_page_top" name="per_page" onchange="this.form.submit()">
+                    {% for option in per_page_options %}
+                    <option value="{{ option }}" {{ 'selected' if products.per_page == option else '' }}>{{ option }}件</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+
+        <table class="table table-hover list-table">
+            <thead>
+                <tr>
+                    <th class="col-dept">部署</th>
+                    <th class="col-code">製品コード</th>
+                    <th class="col-name">製品名</th>
+                    <th class="col-price">単価</th>
+                    <th class="col-date">登録日</th>
+                    <th class="col-date">廃止日</th>
+                    <th class="col-date">更新日</th>
+                    <th class="col-actions">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in products.items %}
+                <tr class="{{ 'table-secondary text-muted' if p.abolished_date else '' }}">
+                    <td class="col-dept" title="{{ p.department.name if p.department else 'ー' }}">
+                        <span class="truncate-cell">{{ p.department.name if p.department else 'ー' }}</span>
+                    </td>
+                    <td class="col-code" title="{{ p.product_code }}">{{ p.product_code }}</td>
+                    <td class="col-name" title="{{ p.name }}">
+                        <span class="truncate-cell">{{ p.name }}</span>
+                    </td>
+                    <td class="col-price">{{ "{:,}".format(p.price) }}円</td>
+                    <td class="col-date">{{ p.registered_date }}</td>
+                    <td class="col-date">{{ p.abolished_date or 'ー' }}</td>
+                    <td class="col-date">{{ p.updated_at }}</td>
+                    <td class="col-actions">
+                        <div class="list-actions">
+                            <a href="{{ url_for('product_edit', id=p.id) }}" class="btn btn-sm btn-outline-primary">編集</a>
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal" data-bs-target="#deleteModal"
+                                    data-url="{{ url_for('product_delete', id=p.id) }}">
+                                削除
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center">登録されている製品はありません。</td></tr>
                 {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-3">
-            <input type="text" name="product_code" class="form-control" placeholder="製品コード" value="{{ request.args.get('product_code', '') }}" list="product-codes">
-            <datalist id="product-codes">
-                {% for p_code in all_product_codes %}
-                <option value="{{ p_code }}">
+            </tbody>
+        </table>
+
+        {% if products.pages > 1 %}
+        <nav aria-label="製品一覧ページ下部">
+            <ul class="pagination justify-content-center mb-0">
+                <li class="page-item {{ 'disabled' if not products.has_prev else '' }}">
+                    <a class="page-link" href="{{ url_for('product_list', page=products.prev_num, **pagination_args) }}">前へ</a>
+                </li>
+                {% for page_num in products.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                    <li class="page-item {{ 'active' if page_num == products.page else '' }}">
+                        <a class="page-link" href="{{ url_for('product_list', page=page_num, **pagination_args) }}">{{ page_num }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
                 {% endfor %}
-            </datalist>
-        </div>
-        <div class="col-md-4">
-            <input type="text" name="name" class="form-control" placeholder="製品名" value="{{ request.args.get('name', '') }}">
-        </div>
-        <div class="col-md-2 d-flex gap-1">
-            <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-search"></i></button>
-            <a href="{{ url_for('product_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i></a>
-        </div>
-    </form>
-</div></div>
-<table class="table bg-white shadow-sm table-hover">
-    <thead><tr><th>部署</th><th>製品コード</th><th>製品名</th><th>単価</th><th>登録日</th><th>廃止日</th><th>更新日</th><th>操作</th></tr></thead>
-    <tbody>
-        {% for p in products %}
-        <tr class="{{ 'table-secondary text-muted' if p.abolished_date else '' }}">
-            <td>{{ p.department.name if p.department else 'ー' }}</td>
-            <td>{{ p.product_code }}</td>
-            <td>{{ p.name }}</td>
-            <td>{{ "{:,}".format(p.price) }}円</td>
-            <td>{{ p.registered_date }}</td>
-            <td>{{ p.abolished_date or 'ー' }}</td>
-            <td>{{ p.updated_at }}</td>
-            <td>
-                <a href="{{ url_for('product_edit', id=p.id) }}" class="btn btn-sm btn-outline-primary">編集</a>
-                <button type="button" class="btn btn-sm btn-outline-danger" 
-                        data-bs-toggle="modal" data-bs-target="#deleteModal" 
-                        data-url="{{ url_for('product_delete', id=p.id) }}">
-                    削除
-                </button>
-            </td>
-        </tr>
-        {% else %}
-        <tr><td colspan="8" class="text-center">登録されている製品はありません。</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
-<a href="{{ url_for('index') }}" class="btn btn-secondary">戻る</a>
+                <li class="page-item {{ 'disabled' if not products.has_next else '' }}">
+                    <a class="page-link" href="{{ url_for('product_list', page=products.next_num, **pagination_args) }}">次へ</a>
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mt-3">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">戻る</a>
+</div>
 
 <!-- 削除確認モーダル -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">

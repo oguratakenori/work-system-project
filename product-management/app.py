@@ -25,6 +25,31 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-default-key-please-chang
 
 db.init_app(app)
 
+PER_PAGE_OPTIONS = (10, 20, 50, 100)
+DEFAULT_PER_PAGE = 20
+
+def get_pagination_params():
+    try:
+        page = int(request.args.get('page', 1))
+    except (TypeError, ValueError):
+        page = 1
+    if page < 1:
+        page = 1
+
+    try:
+        per_page = int(request.args.get('per_page', DEFAULT_PER_PAGE))
+    except (TypeError, ValueError):
+        per_page = DEFAULT_PER_PAGE
+    if per_page not in PER_PAGE_OPTIONS:
+        per_page = DEFAULT_PER_PAGE
+
+    return page, per_page
+
+def get_pagination_args():
+    args = request.args.to_dict()
+    args.pop('page', None)
+    return args
+
 def to_date(s): return datetime.strptime(s, '%Y-%m-%d').date() if s else None
 
 def get_departments_from_employee_db():
@@ -47,10 +72,18 @@ def product_list():
     if name: query = query.filter(Product.name.like(f"%{name}%"))
     if dept_id: query = query.filter(Product.department_id == dept_id)
 
-    products = query.all()
+    page, per_page = get_pagination_params()
+    products = query.order_by(Product.product_code).paginate(page=page, per_page=per_page, error_out=False)
     departments = get_departments_from_employee_db()
     all_product_codes = [p.product_code for p in Product.query.with_entities(Product.product_code).filter_by(is_active=True).distinct().all()]
-    return render_template('products/list.html', products=products, departments=departments, all_product_codes=all_product_codes)
+    return render_template(
+        'products/list.html',
+        products=products,
+        departments=departments,
+        all_product_codes=all_product_codes,
+        per_page_options=PER_PAGE_OPTIONS,
+        pagination_args=get_pagination_args()
+    )
 
 @app.route('/products/new', methods=['GET', 'POST'])
 def product_new():

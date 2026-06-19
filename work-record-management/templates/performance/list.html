@@ -2,9 +2,8 @@
 
 {% block content %}
 <style>
-    /* Consistent professional styling */
     .filter-card {
-        border-top: 5px solid #0d6efd; /* Blue accent */
+        border-top: 5px solid #0d6efd;
         border-radius: 12px;
         background: #ffffff;
         box-shadow: 0 10px 25px rgba(0,0,0,0.05);
@@ -25,11 +24,22 @@
     .table-container {
         background: white;
         border-radius: 12px;
-        overflow: hidden;
         box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         margin-top: 1.5rem;
+        padding: 1rem;
     }
-    .table thead th {
+    .list-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+    .list-table th,
+    .list-table td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    .list-table thead th {
         background: #f8f9fa;
         color: #6c757d;
         font-weight: 600;
@@ -38,8 +48,27 @@
         letter-spacing: 0.05em;
         border-bottom: 2px solid #dee2e6;
     }
-    .emp-info { font-size: 0.9rem; font-weight: 500; }
-    .code-badge { font-family: monospace; color: #6c757d; font-size: 0.8rem; }
+    .list-table .col-date { width: 11%; }
+    .list-table .col-employee { width: 18%; }
+    .list-table .col-dept { width: 15%; }
+    .list-table .col-work { width: 18%; }
+    .list-table .col-product { width: 12%; }
+    .list-table .col-hours { width: 8%; }
+    .list-table .col-quantity { width: 8%; }
+    .list-table .col-actions { width: 10%; }
+    .list-table td.col-actions { overflow: visible; white-space: nowrap; }
+    .truncate-cell {
+        display: block;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .list-actions { display: flex; flex-wrap: nowrap; justify-content: center; gap: 0.25rem; }
+    .list-actions .btn { white-space: nowrap; }
+    .list-toolbar { gap: 0.75rem; }
+    .list-toolbar .pagination { margin-bottom: 0; }
 </style>
 
 <div class="back-nav mb-3">
@@ -54,13 +83,14 @@
 <div class="card filter-card border-0 mb-4">
     <div class="card-body p-4">
         <form method="GET" class="row g-3" id="searchForm">
-            <!-- 1. 社員検索 (Autocomplete) -->
+            <input type="hidden" name="page" value="1">
+            <input type="hidden" name="per_page" value="{{ records.per_page }}">
             <div class="col-md-3 position-relative">
                 <label class="form-label">社員検索</label>
                 <div class="input-group">
                     <span class="input-group-text bg-white"><i class="bi bi-person"></i></span>
-                    <input type="text" name="employee_code" id="employee_code" class="form-control" 
-                           placeholder="コードまたは名前" list="employeeList" autocomplete="off" 
+                    <input type="text" name="employee_code" id="employee_code" class="form-control"
+                           placeholder="コードまたは名前" list="employeeList" autocomplete="off"
                            value="{{ request.args.get('employee_code', '') }}">
                 </div>
                 <datalist id="employeeList"></datalist>
@@ -71,7 +101,6 @@
                 </div>
             </div>
 
-            <!-- 2. 部署検索 -->
             <div class="col-md-3">
                 <label class="form-label">部署</label>
                 <select name="department_id" id="department_id" class="form-select">
@@ -84,7 +113,6 @@
                 </select>
             </div>
 
-            <!-- 3. 作業検索 (Cascading) -->
             <div class="col-md-3">
                 <label class="form-label">作業項目</label>
                 <select name="work_code" id="work_code" class="form-select">
@@ -112,101 +140,161 @@
     </div>
 </div>
 
-<!-- Results Table -->
 <div class="table-container">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead>
-                <tr>
-                    <th class="ps-4">作業日</th>
-                    <th>担当社員</th>
-                    <th>部署</th>
-                    <th>作業内容</th>
-                    <th>製品</th>
-                    <th>時間</th>
-                    <th class="text-end">数量</th>
-                    <th class="pe-4 text-center">操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for record in records %}
-                <tr>
-                    <td class="ps-4 fw-bold text-dark">{{ record.work_date }}</td>
-                    <td>
-                        <div class="emp-info">{{ emp_name_map.get(record.employee_code, '不明') }}</div>
-                        <div class="code-badge">{{ record.employee_code }}</div>
-                    </td>
-                    <td>
-                        <span class="badge bg-light text-dark border">{{ work_dept_map.get(record.work_code, '未設定') }}</span>
-                    </td>
-                    <td>
-                        <div class="fw-bold text-primary">{{ work_name_map.get(record.work_code, '不明') }}</div>
-                        <div class="code-badge">{{ record.work_code }}</div>
-                    </td>
-                    <td>
-                        <span class="text-secondary small">#{{ record.product_code }}</span>
-                    </td>
-                    <td>
-                        <span class="text-dark">{{ "%.1f"|format(record.work_hours) }} <small class="text-muted">h</small></span>
-                    </td>
-                    <td class="text-end">
-                        <span class="badge bg-success bg-opacity-10 text-success px-3">{{ record.quantity }}</span>
-                    </td>
-                    <td class="pe-4 text-center">
-                        <div class="d-flex justify-content-center gap-2">
-                            <a href="{{ url_for('edit_performance', id=record.id) }}" class="btn btn-warning btn-sm">
-                                <i class="bi bi-pencil"></i> 修正
-                            </a>
-                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal{{ record.id }}">
-                                <i class="bi bi-trash"></i> 削除
-                            </button>
-                        </div>
+    <div class="list-toolbar d-flex justify-content-between align-items-center flex-wrap mb-2">
+        <div class="text-muted small">
+            全 {{ records.total }} 件中
+            {% if records.total %}
+            {{ records.first }} - {{ records.last }} 件を表示
+            {% else %}
+            0 件を表示
+            {% endif %}
+        </div>
+        {% if records.pages > 1 %}
+        <nav aria-label="作業実績ページ上部">
+            <ul class="pagination pagination-sm">
+                <li class="page-item {{ 'disabled' if not records.has_prev else '' }}">
+                    <a class="page-link" href="{{ url_for('performance_list', page=records.prev_num, **pagination_args) }}">前へ</a>
+                </li>
+                {% for page_num in records.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                    <li class="page-item {{ 'active' if page_num == records.page else '' }}">
+                        <a class="page-link" href="{{ url_for('performance_list', page=page_num, **pagination_args) }}">{{ page_num }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item {{ 'disabled' if not records.has_next else '' }}">
+                    <a class="page-link" href="{{ url_for('performance_list', page=records.next_num, **pagination_args) }}">次へ</a>
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
+        <form method="GET" action="{{ url_for('performance_list') }}" class="d-flex align-items-center gap-2">
+            <input type="hidden" name="page" value="1">
+            <input type="hidden" name="employee_code" value="{{ request.args.get('employee_code', '') }}">
+            <input type="hidden" name="department_id" value="{{ request.args.get('department_id', '') }}">
+            <input type="hidden" name="work_code" value="{{ request.args.get('work_code', '') }}">
+            <label for="per_page_top" class="form-label mb-0 text-muted small">表示件数</label>
+            <select class="form-select form-select-sm" id="per_page_top" name="per_page" onchange="this.form.submit()">
+                {% for option in per_page_options %}
+                <option value="{{ option }}" {{ 'selected' if records.per_page == option else '' }}>{{ option }}件</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
 
-                        <!-- Delete Confirmation Modal -->
-                        <div class="modal fade" id="deleteModal{{ record.id }}" tabindex="-1">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header bg-danger text-white">
-                                        <h5 class="modal-title">削除の確認</h5>
-                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+    <table class="table table-hover align-middle mb-0 list-table">
+        <thead>
+            <tr>
+                <th class="col-date ps-4">作業日</th>
+                <th class="col-employee">担当社員</th>
+                <th class="col-dept">部署</th>
+                <th class="col-work">作業内容</th>
+                <th class="col-product">製品</th>
+                <th class="col-hours">時間</th>
+                <th class="col-quantity text-end">数量</th>
+                <th class="col-actions text-center">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records.items %}
+            <tr>
+                <td class="col-date ps-4 fw-bold text-dark">{{ record.work_date }}</td>
+                <td class="col-employee" title="{{ emp_name_map.get(record.employee_code, '不明') }} ({{ record.employee_code }})">
+                    <span class="truncate-cell">{{ emp_name_map.get(record.employee_code, '不明') }} ({{ record.employee_code }})</span>
+                </td>
+                <td class="col-dept" title="{{ work_dept_map.get(record.work_code, '未設定') }}">
+                    <span class="truncate-cell">{{ work_dept_map.get(record.work_code, '未設定') }}</span>
+                </td>
+                <td class="col-work" title="{{ work_name_map.get(record.work_code, '不明') }} ({{ record.work_code }})">
+                    <span class="truncate-cell">{{ work_name_map.get(record.work_code, '不明') }} ({{ record.work_code }})</span>
+                </td>
+                <td class="col-product" title="{{ record.product_code }}">
+                    <span class="truncate-cell">#{{ record.product_code }}</span>
+                </td>
+                <td class="col-hours">
+                    <span class="text-dark">{{ "%.1f"|format(record.work_hours) }} <small class="text-muted">h</small></span>
+                </td>
+                <td class="col-quantity text-end">
+                    <span class="badge bg-success bg-opacity-10 text-success px-3">{{ record.quantity }}</span>
+                </td>
+                <td class="col-actions text-center">
+                    <div class="list-actions">
+                        <a href="{{ url_for('edit_performance', id=record.id) }}" class="btn btn-warning btn-sm">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal{{ record.id }}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+
+                    <!-- Delete Confirmation Modal -->
+                    <div class="modal fade" id="deleteModal{{ record.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-danger text-white">
+                                    <h5 class="modal-title">削除の確認</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body text-start">
+                                    <p>この作業実績を削除しますか？</p>
+                                    <p class="text-danger fw-bold small">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>この操作は取り消せません。
+                                    </p>
+                                    <div class="card bg-light border-0 p-3 mt-3">
+                                        <div class="small text-muted mb-1">削除対象データ:</div>
+                                        <div class="fw-bold">{{ record.work_date }} / {{ emp_name_map.get(record.employee_code, record.employee_code) }}</div>
+                                        <div class="small text-secondary">{{ work_name_map.get(record.work_code, record.work_code) }} ({{ record.quantity }}個)</div>
                                     </div>
-                                    <div class="modal-body text-start">
-                                        <p>この作業実績を削除しますか？</p>
-                                        <p class="text-danger fw-bold small">
-                                            <i class="bi bi-exclamation-triangle-fill me-1"></i>この操作は取り消せません。
-                                        </p>
-                                        <div class="card bg-light border-0 p-3 mt-3">
-                                            <div class="small text-muted mb-1">削除対象データ:</div>
-                                            <div class="fw-bold">{{ record.work_date }} / {{ emp_name_map.get(record.employee_code, record.employee_code) }}</div>
-                                            <div class="small text-secondary">{{ work_name_map.get(record.work_code, record.work_code) }} ({{ record.quantity }}個)</div>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                                        <form action="{{ url_for('delete_performance', id=record.id) }}" method="POST" class="d-inline">
-                                            <button type="submit" class="btn btn-danger">削除</button>
-                                        </form>
-                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                                    <form action="{{ url_for('delete_performance', id=record.id) }}" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-danger">削除</button>
+                                    </form>
                                 </div>
                             </div>
                         </div>
-                    </td>
-                </tr>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                    実績データが見つかりませんでした。条件を変えて検索してください。
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if records.pages > 1 %}
+    <nav aria-label="作業実績ページ下部" class="mt-2">
+        <ul class="pagination justify-content-center mb-0">
+            <li class="page-item {{ 'disabled' if not records.has_prev else '' }}">
+                <a class="page-link" href="{{ url_for('performance_list', page=records.prev_num, **pagination_args) }}">前へ</a>
+            </li>
+            {% for page_num in records.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                <li class="page-item {{ 'active' if page_num == records.page else '' }}">
+                    <a class="page-link" href="{{ url_for('performance_list', page=page_num, **pagination_args) }}">{{ page_num }}</a>
+                </li>
                 {% else %}
-                <tr>
-                    <td colspan="8" class="text-center py-5 text-muted">
-                        <i class="bi bi-inbox fs-1 d-block mb-3"></i>
-                        実績データが見つかりませんでした。条件を変えて検索してください。
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {{ 'disabled' if not records.has_next else '' }}">
+                <a class="page-link" href="{{ url_for('performance_list', page=records.next_num, **pagination_args) }}">次へ</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 
 <script>
-    // 1. Employee Autocomplete (Load all into memory on page load)
     const empInput = document.getElementById('employee_code');
     const empList = document.getElementById('employeeList');
     const empDisplay = document.getElementById('empDisplay');
@@ -226,7 +314,6 @@
     empInput.addEventListener('input', (e) => {
         const val = e.target.value;
 
-        // Show candidates only after at least 1 character is entered
         if (val.length >= 1) {
             if (empList.children.length === 0) {
                 currentEmployees.forEach(emp => {
@@ -237,7 +324,6 @@
                 });
             }
         } else {
-            // Clear list when input is empty
             empList.innerHTML = '';
         }
 
@@ -249,7 +335,6 @@
         }
     });
 
-    // 2. Cascading Dropdown (Dept -> Work)
     const deptSelect = document.getElementById('department_id');
     const workSelect = document.getElementById('work_code');
 

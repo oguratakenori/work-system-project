@@ -82,7 +82,7 @@ def get_department_full_map():
 def get_all_works():
     return Work.query.all()
 
-def get_works(filters=None):
+def build_works_query(filters=None):
     query = Work.query
     if filters:
         if filters.get('work_code'):
@@ -91,7 +91,13 @@ def get_works(filters=None):
             query = query.filter(Work.name.like(f"%{filters['name']}%"))
         if filters.get('department_id'):
             query = query.filter(Work.department_id == filters['department_id'])
-    return query.all()
+    return query.order_by(Work.work_code.asc())
+
+def get_works(filters=None):
+    return build_works_query(filters).all()
+
+def get_works_page(filters=None, page=1, per_page=20):
+    return build_works_query(filters).paginate(page=page, per_page=per_page, error_out=False)
 
 def add_work(code, name, department_id=None):
     new_work = Work(work_code=code, name=name, department_id=department_id)
@@ -153,7 +159,7 @@ def add_performance_record(data):
     db.session.commit()
     return new_record
 
-def get_performance_records(filters=None):
+def build_performance_records_query(filters=None):
     query = PerformanceRecord.query
     if filters:
         if filters.get('employee_code'):
@@ -173,7 +179,13 @@ def get_performance_records(filters=None):
         if filters.get('end_date'):
             query = query.filter(PerformanceRecord.work_date <= datetime.strptime(filters['end_date'], '%Y-%m-%d').date())
     
-    return query.order_by(PerformanceRecord.work_date.desc()).all()
+    return query.order_by(PerformanceRecord.work_date.desc(), PerformanceRecord.id.desc())
+
+def get_performance_records(filters=None):
+    return build_performance_records_query(filters).all()
+
+def get_performance_records_page(filters=None, page=1, per_page=20):
+    return build_performance_records_query(filters).paginate(page=page, per_page=per_page, error_out=False)
 
 def get_performance_record(record_id):
     return PerformanceRecord.query.get(record_id)
