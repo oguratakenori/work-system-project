@@ -14,25 +14,25 @@
         white-space: nowrap;
     }
     .list-table .col-code {
-        width: 12%;
+        width: 11%;
     }
     .list-table .col-name {
-        width: 18%;
+        width: 16%;
     }
     .list-table .col-dept {
-        width: 17%;
-    }
-    .list-table .col-position {
         width: 15%;
     }
+    .list-table .col-position {
+        width: 13%;
+    }
     .list-table .col-wage {
-        width: 10%;
+        width: 9%;
     }
     .list-table .col-status {
         width: 8%;
     }
     .list-table .col-actions {
-        width: 20%;
+        width: 28%;
     }
     .list-table td.col-actions {
         overflow: visible;
@@ -55,9 +55,11 @@
 
 <div class="header-title d-flex justify-content-between align-items-center">
     <h2>社員一覧</h2>
+    {% if has_permission('master_write') %}
     <a href="{{ url_for('employee_new') }}" class="btn btn-success">
         <i class="bi bi-plus-lg"></i> 新規登録
     </a>
+    {% endif %}
 </div>
 
 <div class="card mb-3 bg-light">
@@ -190,9 +192,17 @@
                         <a href="{{ url_for('employee_detail', id=emp.id) }}" class="btn btn-sm btn-outline-info">
                             <i class="bi bi-search"></i> 詳細
                         </a>
+                        {% if has_permission('master_write') %}
                         <a href="{{ url_for('employee_edit', id=emp.id) }}" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-pencil"></i> 編集
                         </a>
+                        {% endif %}
+                        {% if has_permission('admin') %}
+                        <a href="{{ url_for('employee_permissions', id=emp.id) }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-shield-lock"></i> 権限設定
+                        </a>
+                        {% endif %}
+                        {% if has_permission('delete') %}
                         <form action="{{ url_for('employee_delete', id=emp.id) }}" method="POST" class="d-inline" id="delete-form-{{ emp.id }}">
                             <button type="button" class="btn btn-sm btn-outline-danger"
                                     data-bs-toggle="modal" 
@@ -202,6 +212,7 @@
                                 <i class="bi bi-trash"></i> 削除
                             </button>
                         </form>
+                        {% endif %}
                         </div>
                     </td>
                 </tr>

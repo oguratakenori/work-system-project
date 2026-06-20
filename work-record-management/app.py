@@ -1,8 +1,9 @@
 import os
+import sys
 import csv
 from io import StringIO
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, flash, Response, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, Response, jsonify, session
 from models import db, Work, PerformanceRecord
 import crud
 from dotenv import load_dotenv
@@ -11,6 +12,30 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-default-key-please-change')
+app.config['SESSION_COOKIE_NAME'] = 'work_record_management_session'
+
+base_dir = os.path.abspath(os.path.dirname(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(base_dir, '..'))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from auth_utils import (
+    auth_context,
+    authenticate_employee,
+    change_own_password,
+    ensure_auth_schema,
+    get_employee_db_path,
+    permission_required,
+    require_login_for_request,
+    reset_password_by_admin,
+    seed_initial_admin_from_env,
+    set_initial_password,
+    sign_in,
+    sign_out,
+)
+
+SYSTEM_KEY = 'work_record'
+EMPLOYEE_DB_PATH = get_employee_db_path(base_dir)
 
 # Database Configuration
 database_url = os.getenv('DATABASE_URL')
@@ -48,6 +73,88 @@ def get_pagination_args():
     args.pop('page', None)
     return args
 
+def safe_next_url(next_url):
+    if next_url and next_url.startswith('/') and not next_url.startswith('//'):
+        return next_url
+    return url_for('index')
+
+@app.before_request
+def require_login():
+    return require_login_for_request(SYSTEM_KEY, EMPLOYEE_DB_PATH, {'login', 'logout', 'forgot_password'})
+
+@app.context_processor
+def inject_auth_context():
+    return auth_context(SYSTEM_KEY)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        employee_code = request.form.get('employee_code', '').strip()
+        password = request.form.get('password', '')
+        employee, error = authenticate_employee(EMPLOYEE_DB_PATH, employee_code, password, SYSTEM_KEY)
+        if error:
+            flash(error, 'error')
+            return render_template('login.html', system_name='作業実績管理システム')
+        sign_in(employee)
+        if session.get('password_reset_required'):
+            flash('初回ログインのため、新しいパスワードを設定してください。', 'warning')
+            return redirect(url_for('initial_password_setup'))
+        flash('ログインしました。', 'success')
+        return redirect(safe_next_url(request.args.get('next')))
+    return render_template('login.html', system_name='作業実績管理システム')
+
+@app.route('/logout')
+def logout():
+    sign_out()
+    flash('ログアウトしました。', 'success')
+    return redirect(url_for('login'))
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        success, message = reset_password_by_admin(
+            EMPLOYEE_DB_PATH,
+            request.form.get('target_employee_code', ''),
+            request.form.get('admin_employee_code', ''),
+            request.form.get('admin_password', ''),
+        )
+        flash(message, 'success' if success else 'error')
+        if success:
+            return redirect(url_for('login'))
+    return render_template('forgot_password.html', system_name='作業実績管理システム')
+
+@app.route('/initial-password', methods=['GET', 'POST'])
+def initial_password_setup():
+    if not session.get('password_reset_required'):
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        success, message = set_initial_password(
+            EMPLOYEE_DB_PATH,
+            session.get('employee_id'),
+            request.form.get('new_password', ''),
+            request.form.get('new_password_confirm', ''),
+        )
+        flash(message, 'success' if success else 'error')
+        if success:
+            session['password_reset_required'] = False
+            return redirect(url_for('index'))
+    return render_template('initial_password_setup.html')
+
+@app.route('/change-password', methods=['GET', 'POST'])
+def change_password():
+    if request.method == 'POST':
+        success, message = change_own_password(
+            EMPLOYEE_DB_PATH,
+            session.get('employee_id'),
+            request.form.get('current_password', ''),
+            request.form.get('new_password', ''),
+            request.form.get('new_password_confirm', ''),
+        )
+        flash(message, 'success' if success else 'error')
+        if success:
+            return redirect(url_for('index'))
+    return render_template('change_password.html')
+
 def seed_data():
     if crud.get_all_works() == []:
         # Seed Works
@@ -61,6 +168,7 @@ def index():
 
 # 2. Work Master Management
 @app.route('/masters/works', methods=['GET'])
+@permission_required(SYSTEM_KEY, 'master_write', EMPLOYEE_DB_PATH)
 def manage_works():
     filters = {
         'work_code': request.args.get('work_code'),
@@ -81,6 +189,7 @@ def manage_works():
     )
 
 @app.route('/masters/works/new', methods=['GET', 'POST'])
+@permission_required(SYSTEM_KEY, 'master_write', EMPLOYEE_DB_PATH)
 def new_work():
     if request.method == 'POST':
         code = request.form.get('work_code')
@@ -95,6 +204,7 @@ def new_work():
     return render_template('masters/works_new.html', departments=departments)
 
 @app.route('/masters/works/edit/<int:id>', methods=['POST'])
+@permission_required(SYSTEM_KEY, 'master_write', EMPLOYEE_DB_PATH)
 def edit_work(id):
     code = request.form.get('work_code')
     name = request.form.get('name')
@@ -104,6 +214,7 @@ def edit_work(id):
     return redirect(url_for('manage_works'))
 
 @app.route('/masters/works/delete/<int:id>')
+@permission_required(SYSTEM_KEY, 'master_delete', EMPLOYEE_DB_PATH)
 def delete_work(id):
     crud.delete_work(id)
     flash('作業を削除しました')
@@ -111,6 +222,7 @@ def delete_work(id):
 
 # 3. Performance Input
 @app.route('/performance/input', methods=['GET', 'POST'])
+@permission_required(SYSTEM_KEY, 'record_write', EMPLOYEE_DB_PATH)
 def performance_input():
     if request.method == 'POST':
         data = {
@@ -133,6 +245,7 @@ def performance_input():
     return render_template('performance/input.html', departments=departments)
 
 @app.route('/performance/edit/<int:id>', methods=['GET', 'POST'])
+@permission_required(SYSTEM_KEY, 'record_write', EMPLOYEE_DB_PATH)
 def edit_performance(id):
     if request.method == 'POST':
         data = {
@@ -164,6 +277,7 @@ def edit_performance(id):
                            current_dept_id=current_dept_id)
 
 @app.route('/performance/delete/<int:id>', methods=['POST'])
+@permission_required(SYSTEM_KEY, 'record_delete', EMPLOYEE_DB_PATH)
 def delete_performance(id):
     crud.delete_performance_record(id)
     flash('作業実績を削除しました')
@@ -288,5 +402,7 @@ def reports():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        ensure_auth_schema(EMPLOYEE_DB_PATH)
+        seed_initial_admin_from_env(EMPLOYEE_DB_PATH)
         seed_data()
     app.run(debug=True, port=5003)

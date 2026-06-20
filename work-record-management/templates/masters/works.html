@@ -140,9 +140,11 @@
                             <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ work.id }}">
                                 修正
                             </button>
+                            {% if has_permission('master_delete') %}
                             <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal{{ work.id }}">
                                 削除
                             </button>
+                            {% endif %}
                         </div>
 
                         <!-- Edit Modal -->
@@ -182,6 +184,7 @@
                             </div>
                         </div>
 
+                        {% if has_permission('master_delete') %}
                         <!-- Delete Confirmation Modal -->
                         <div class="modal fade" id="deleteModal{{ work.id }}" tabindex="-1">
                             <div class="modal-dialog">
@@ -203,6 +206,7 @@
                                 </div>
                             </div>
                         </div>
+                        {% endif %}
                     </td>
                 </tr>
                 {% else %}

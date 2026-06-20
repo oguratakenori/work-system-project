@@ -35,9 +35,22 @@ class Employee(db.Model):
     retirement_date = db.Column(db.Date)
     status = db.Column(db.String(20), default='在職') # 在職, 休職, 退職
     is_active = db.Column(db.Boolean, default=True)
+    password_hash = db.Column(db.String(255))
+    password_reset_required = db.Column(db.Boolean, default=False)
+    can_login = db.Column(db.Boolean, default=False)
+    postal_code = db.Column(db.String(20))
+    address1 = db.Column(db.String(255))
+    address2 = db.Column(db.String(255))
+    address1_furigana = db.Column(db.String(255))
+    address2_furigana = db.Column(db.String(255))
+    phone_number = db.Column(db.String(30))
+    birth_date = db.Column(db.Date)
+    notes = db.Column(db.Text)
+    is_system_user = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     hourly_rates = db.relationship('HourlyRateHistory', backref='employee', lazy=True, order_by='HourlyRateHistory.start_date.desc()')
+    system_permissions = db.relationship('EmployeeSystemPermission', backref='employee', lazy=True, cascade='all, delete-orphan')
 
     @property
     def current_hourly_rate(self):
@@ -53,3 +66,16 @@ class HourlyRateHistory(db.Model):
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date) # NULL means currently active
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class EmployeeSystemPermission(db.Model):
+    __tablename__ = 'employee_system_permissions'
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    system_key = db.Column(db.String(50), nullable=False)
+    role = db.Column(db.String(50), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('employee_id', 'system_key', name='uq_employee_system_permission'),
+    )

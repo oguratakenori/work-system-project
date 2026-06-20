@@ -79,11 +79,13 @@
                             <a href="{{ url_for('account_edit', id=acc.id) }}" class="btn btn-xs btn-outline-primary me-1 py-0">
                                 <i class="bi bi-pencil small"></i>
                             </a>
+                            {% if has_permission('master_delete') %}
                             <form id="delete-form-{{ acc.id }}" action="{{ url_for('account_delete', id=acc.id) }}" method="POST" style="display:inline;">
                                 <button type="button" class="btn btn-xs btn-outline-danger py-0" onclick="confirmAccountDelete({{ acc.id }})">
                                     <i class="bi bi-trash small"></i>
                                 </button>
                             </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

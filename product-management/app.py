@@ -1,10 +1,11 @@
 import os
+import sys
 from dotenv import load_dotenv
 import csv
 import io
 import json
 from datetime import datetime
-from flask import Flask, render_template, redirect, url_for, flash, request, make_response
+from flask import Flask, render_template, redirect, url_for, flash, request, make_response, session
 from models import db, Department, Product
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
@@ -15,6 +16,23 @@ app = Flask(__name__)
 base_dir = os.path.abspath(os.path.dirname(__file__))
 employee_db_path = os.path.join(base_dir, '..', 'employee-management', 'instance', 'employee_management.db')
 employee_db_path = os.path.abspath(employee_db_path).replace('\\', '/')
+PROJECT_ROOT = os.path.abspath(os.path.join(base_dir, '..'))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from auth_utils import (
+    auth_context,
+    authenticate_employee,
+    change_own_password,
+    ensure_auth_schema,
+    permission_required,
+    require_login_for_request,
+    reset_password_by_admin,
+    seed_initial_admin_from_env,
+    set_initial_password,
+    sign_in,
+    sign_out,
+)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///product_management.db'
 app.config['SQLALCHEMY_BINDS'] = {
@@ -22,8 +40,12 @@ app.config['SQLALCHEMY_BINDS'] = {
 }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-default-key-please-change')
+app.config['SESSION_COOKIE_NAME'] = 'product_management_session'
 
 db.init_app(app)
+
+SYSTEM_KEY = 'product'
+EMPLOYEE_DB_PATH = employee_db_path
 
 PER_PAGE_OPTIONS = (10, 20, 50, 100)
 DEFAULT_PER_PAGE = 20
@@ -49,6 +71,88 @@ def get_pagination_args():
     args = request.args.to_dict()
     args.pop('page', None)
     return args
+
+def safe_next_url(next_url):
+    if next_url and next_url.startswith('/') and not next_url.startswith('//'):
+        return next_url
+    return url_for('index')
+
+@app.before_request
+def require_login():
+    return require_login_for_request(SYSTEM_KEY, EMPLOYEE_DB_PATH, {'login', 'logout', 'forgot_password'})
+
+@app.context_processor
+def inject_auth_context():
+    return auth_context(SYSTEM_KEY)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        employee_code = request.form.get('employee_code', '').strip()
+        password = request.form.get('password', '')
+        employee, error = authenticate_employee(EMPLOYEE_DB_PATH, employee_code, password, SYSTEM_KEY)
+        if error:
+            flash(error, 'error')
+            return render_template('login.html', system_name='製品管理システム')
+        sign_in(employee)
+        if session.get('password_reset_required'):
+            flash('初回ログインのため、新しいパスワードを設定してください。', 'warning')
+            return redirect(url_for('initial_password_setup'))
+        flash('ログインしました。', 'success')
+        return redirect(safe_next_url(request.args.get('next')))
+    return render_template('login.html', system_name='製品管理システム')
+
+@app.route('/logout')
+def logout():
+    sign_out()
+    flash('ログアウトしました。', 'success')
+    return redirect(url_for('login'))
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        success, message = reset_password_by_admin(
+            EMPLOYEE_DB_PATH,
+            request.form.get('target_employee_code', ''),
+            request.form.get('admin_employee_code', ''),
+            request.form.get('admin_password', ''),
+        )
+        flash(message, 'success' if success else 'error')
+        if success:
+            return redirect(url_for('login'))
+    return render_template('forgot_password.html', system_name='製品管理システム')
+
+@app.route('/initial-password', methods=['GET', 'POST'])
+def initial_password_setup():
+    if not session.get('password_reset_required'):
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        success, message = set_initial_password(
+            EMPLOYEE_DB_PATH,
+            session.get('employee_id'),
+            request.form.get('new_password', ''),
+            request.form.get('new_password_confirm', ''),
+        )
+        flash(message, 'success' if success else 'error')
+        if success:
+            session['password_reset_required'] = False
+            return redirect(url_for('index'))
+    return render_template('initial_password_setup.html')
+
+@app.route('/change-password', methods=['GET', 'POST'])
+def change_password():
+    if request.method == 'POST':
+        success, message = change_own_password(
+            EMPLOYEE_DB_PATH,
+            session.get('employee_id'),
+            request.form.get('current_password', ''),
+            request.form.get('new_password', ''),
+            request.form.get('new_password_confirm', ''),
+        )
+        flash(message, 'success' if success else 'error')
+        if success:
+            return redirect(url_for('index'))
+    return render_template('change_password.html')
 
 def to_date(s): return datetime.strptime(s, '%Y-%m-%d').date() if s else None
 
@@ -86,6 +190,7 @@ def product_list():
     )
 
 @app.route('/products/new', methods=['GET', 'POST'])
+@permission_required(SYSTEM_KEY, 'master_write', EMPLOYEE_DB_PATH)
 def product_new():
     departments = get_departments_from_employee_db()
     if request.method == 'POST':
@@ -137,6 +242,7 @@ def product_new():
     return render_template('products/edit.html', product=None, departments=departments)
 
 @app.route('/products/<int:id>/edit', methods=['GET', 'POST'])
+@permission_required(SYSTEM_KEY, 'master_write', EMPLOYEE_DB_PATH)
 def product_edit(id):
     product = Product.query.get_or_404(id)
     departments = get_departments_from_employee_db()
@@ -172,6 +278,7 @@ def product_edit(id):
     return render_template('products/edit.html', product=product, departments=departments)
 
 @app.route('/products/<int:id>/delete', methods=['POST'])
+@permission_required(SYSTEM_KEY, 'delete', EMPLOYEE_DB_PATH)
 def product_delete(id):
     prod = Product.query.get_or_404(id)
     prod.is_active = False
@@ -201,6 +308,7 @@ def csv_export():
     return output
 
 @app.route('/csv/import', methods=['GET', 'POST'])
+@permission_required(SYSTEM_KEY, 'master_write', EMPLOYEE_DB_PATH)
 def csv_import():
     if request.method == 'POST':
         if 'file' not in request.files:
@@ -267,6 +375,7 @@ def csv_import():
     return render_template('csv/import.html')
 
 @app.route('/csv/import/execute', methods=['POST'])
+@permission_required(SYSTEM_KEY, 'master_write', EMPLOYEE_DB_PATH)
 def csv_import_execute():
     new_rows = json.loads(request.form.get('new_rows', '[]'))
     update_rows = json.loads(request.form.get('update_rows', '[]'))
@@ -300,10 +409,14 @@ def csv_import_execute():
 
 @app.cli.command("init-db")
 def init_db():
-    # employee_db は触らず、デフォルトの product_management.db だけを作成する
     db.create_all(bind_key=None)
+    ensure_auth_schema(EMPLOYEE_DB_PATH)
+    seed_initial_admin_from_env(EMPLOYEE_DB_PATH)
     print("Database initialized.")
 
 if __name__ == '__main__':
-    with app.app_context(): db.create_all(bind_key=None)
+    with app.app_context():
+        db.create_all(bind_key=None)
+        ensure_auth_schema(EMPLOYEE_DB_PATH)
+        seed_initial_admin_from_env(EMPLOYEE_DB_PATH)
     app.run(debug=True, port=5001)

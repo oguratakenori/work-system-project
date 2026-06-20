@@ -32,7 +32,9 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>製品マスタ一覧</h2>
+    {% if has_permission('master_write') %}
     <a href="{{ url_for('product_new') }}" class="btn btn-success">新規登録</a>
+    {% endif %}
 </div>
 
 <div class="card mb-3 bg-light">
@@ -142,12 +144,16 @@
                     <td class="col-date">{{ p.updated_at }}</td>
                     <td class="col-actions">
                         <div class="list-actions">
+                            {% if has_permission('master_write') %}
                             <a href="{{ url_for('product_edit', id=p.id) }}" class="btn btn-sm btn-outline-primary">編集</a>
+                            {% endif %}
+                            {% if has_permission('delete') %}
                             <button type="button" class="btn btn-sm btn-outline-danger"
                                     data-bs-toggle="modal" data-bs-target="#deleteModal"
                                     data-url="{{ url_for('product_delete', id=p.id) }}">
                                 削除
                             </button>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>

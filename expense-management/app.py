@@ -1,20 +1,44 @@
 import os
+import sys
 from dotenv import load_dotenv
 import csv
 import io
 from datetime import datetime, date
-from flask import Flask, render_template, redirect, url_for, flash, request, make_response
+from flask import Flask, render_template, redirect, url_for, flash, request, make_response, session
 from models import db, Account, ExpenseRecord
 from sqlalchemy import asc, desc
 
 load_dotenv()
 
-app = Flask(__name__)
 base_dir = os.path.abspath(os.path.dirname(__file__))
+project_root = os.path.abspath(os.path.join(base_dir, '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from auth_utils import (
+    authenticate_employee,
+    auth_context,
+    change_own_password,
+    ensure_auth_schema,
+    get_employee_db_path,
+    permission_required,
+    require_login_for_request,
+    reset_password_by_admin,
+    seed_initial_admin_from_env,
+    set_initial_password,
+    sign_in,
+    sign_out,
+)
+
+app = Flask(__name__)
 db_path = os.path.join(base_dir, 'instance', 'expense_management.db').replace('\\', '/')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-default-key-please-change')
+app.config['SESSION_COOKIE_NAME'] = 'expense_management_session'
+
+SYSTEM_KEY = 'expense'
+EMPLOYEE_DB_PATH = get_employee_db_path(base_dir)
 
 db.init_app(app)
 
@@ -43,12 +67,95 @@ def get_pagination_args():
     args.pop('page', None)
     return args
 
+def safe_next_url(next_url):
+    if next_url and next_url.startswith('/') and not next_url.startswith('//'):
+        return next_url
+    return url_for('index')
+
+@app.before_request
+def require_login():
+    return require_login_for_request(SYSTEM_KEY, EMPLOYEE_DB_PATH, {'login', 'logout', 'forgot_password'})
+
+@app.context_processor
+def inject_auth_context():
+    return auth_context(SYSTEM_KEY)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        employee_code = request.form.get('employee_code', '').strip()
+        password = request.form.get('password', '')
+        employee, error = authenticate_employee(EMPLOYEE_DB_PATH, employee_code, password, SYSTEM_KEY)
+        if error:
+            flash(error, 'error')
+        else:
+            sign_in(employee)
+            if session.get('password_reset_required'):
+                flash('初回ログインのため、新しいパスワードを設定してください。', 'warning')
+                return redirect(url_for('initial_password_setup'))
+            flash('ログインしました。', 'success')
+            return redirect(safe_next_url(request.args.get('next')))
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    sign_out()
+    flash('ログアウトしました。', 'success')
+    return redirect(url_for('login'))
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        success, message = reset_password_by_admin(
+            EMPLOYEE_DB_PATH,
+            request.form.get('target_employee_code', ''),
+            request.form.get('admin_employee_code', ''),
+            request.form.get('admin_password', ''),
+        )
+        flash(message, 'success' if success else 'error')
+        if success:
+            return redirect(url_for('login'))
+    return render_template('forgot_password.html', system_name='経費管理システム')
+
+@app.route('/initial-password', methods=['GET', 'POST'])
+def initial_password_setup():
+    if not session.get('password_reset_required'):
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        success, message = set_initial_password(
+            EMPLOYEE_DB_PATH,
+            session.get('employee_id'),
+            request.form.get('new_password', ''),
+            request.form.get('new_password_confirm', ''),
+        )
+        flash(message, 'success' if success else 'error')
+        if success:
+            session['password_reset_required'] = False
+            return redirect(url_for('index'))
+    return render_template('initial_password_setup.html')
+
+@app.route('/change-password', methods=['GET', 'POST'])
+def change_password():
+    if request.method == 'POST':
+        success, message = change_own_password(
+            EMPLOYEE_DB_PATH,
+            session.get('employee_id'),
+            request.form.get('current_password', ''),
+            request.form.get('new_password', ''),
+            request.form.get('new_password_confirm', ''),
+        )
+        flash(message, 'success' if success else 'error')
+        if success:
+            return redirect(url_for('index'))
+    return render_template('change_password.html')
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
 # --- Account Master ---
 @app.route('/accounts')
+@permission_required(SYSTEM_KEY, 'master_write', EMPLOYEE_DB_PATH)
 def account_list():
     # IN accounts ordered by display_order
     in_accounts = Account.query.filter_by(is_visible=True).order_by(Account.display_order.asc()).all()
@@ -57,6 +164,7 @@ def account_list():
     return render_template('accounts/list.html', in_accounts=in_accounts, out_accounts=out_accounts)
 
 @app.route('/accounts/save_all', methods=['POST'])
+@permission_required(SYSTEM_KEY, 'master_write', EMPLOYEE_DB_PATH)
 def account_save_all():
     try:
         data = request.get_json()
@@ -84,6 +192,7 @@ def account_save_all():
         return {"status": "error", "message": str(e)}, 500
 
 @app.route('/accounts/new', methods=['GET', 'POST'])
+@permission_required(SYSTEM_KEY, 'master_write', EMPLOYEE_DB_PATH)
 def account_new():
     if request.method == 'POST':
         code = request.form.get('code')
@@ -107,6 +216,7 @@ def account_new():
     return render_template('accounts/edit.html', account=None, accounts=accounts)
 
 @app.route('/accounts/<int:id>/edit', methods=['GET', 'POST'])
+@permission_required(SYSTEM_KEY, 'master_write', EMPLOYEE_DB_PATH)
 def account_edit(id):
     account = Account.query.get_or_404(id)
     if request.method == 'POST':
@@ -119,6 +229,7 @@ def account_edit(id):
     return render_template('accounts/edit_exclusive.html', account=account)
 
 @app.route('/accounts/<int:id>/delete', methods=['POST'])
+@permission_required(SYSTEM_KEY, 'master_delete', EMPLOYEE_DB_PATH)
 def account_delete(id):
     account = Account.query.get_or_404(id)
     if account.records:
@@ -130,6 +241,7 @@ def account_delete(id):
     return redirect(url_for('account_new'))
 
 @app.route('/accounts/<int:id>/move/<direction>', methods=['POST'])
+@permission_required(SYSTEM_KEY, 'master_write', EMPLOYEE_DB_PATH)
 def account_move(id, direction):
     account = Account.query.get_or_404(id)
     if direction == 'up':
@@ -144,6 +256,7 @@ def account_move(id, direction):
 
 # --- Expense Batch Entry ---
 @app.route('/entry', methods=['GET', 'POST'])
+@permission_required(SYSTEM_KEY, 'record_write', EMPLOYEE_DB_PATH)
 def expense_entry():
     accounts = Account.query.filter_by(is_visible=True).order_by(Account.display_order.asc()).all()
     if request.method == 'POST':
@@ -208,6 +321,7 @@ def correction_search():
     )
 
 @app.route('/correction/deleted')
+@permission_required(SYSTEM_KEY, 'record_delete', EMPLOYEE_DB_PATH)
 def correction_deleted_list():
     page, per_page = get_pagination_params()
     records = ExpenseRecord.query.filter_by(is_deleted=True).order_by(
@@ -221,6 +335,7 @@ def correction_deleted_list():
     )
 
 @app.route('/correction/<int:id>/edit', methods=['GET', 'POST'])
+@permission_required(SYSTEM_KEY, 'record_write', EMPLOYEE_DB_PATH)
 def correction_edit(id):
     record = ExpenseRecord.query.filter_by(id=id, is_deleted=False).first_or_404()
     accounts = Account.query.order_by(Account.display_order.asc()).all()
@@ -236,6 +351,7 @@ def correction_edit(id):
     return render_template('correction/edit.html', record=record, accounts=accounts)
 
 @app.route('/correction/<int:id>/delete', methods=['POST'])
+@permission_required(SYSTEM_KEY, 'record_delete', EMPLOYEE_DB_PATH)
 def correction_delete(id):
     record = ExpenseRecord.query.get_or_404(id)
     record.is_deleted = True
@@ -245,6 +361,7 @@ def correction_delete(id):
     return redirect(url_for('correction_search', **request.args))
 
 @app.route('/correction/<int:id>/restore', methods=['POST'])
+@permission_required(SYSTEM_KEY, 'record_delete', EMPLOYEE_DB_PATH)
 def correction_restore(id):
     record = ExpenseRecord.query.get_or_404(id)
     record.is_deleted = False
@@ -254,6 +371,7 @@ def correction_restore(id):
     return redirect(url_for('correction_deleted_list'))
 
 @app.route('/correction/<int:id>/purge', methods=['POST'])
+@permission_required(SYSTEM_KEY, 'record_delete', EMPLOYEE_DB_PATH)
 def correction_purge(id):
     record = ExpenseRecord.query.get_or_404(id)
     db.session.delete(record)
@@ -336,9 +454,13 @@ def expense_csv():
 @app.cli.command("init-db")
 def init_db():
     db.create_all()
+    ensure_auth_schema(EMPLOYEE_DB_PATH)
+    seed_initial_admin_from_env(EMPLOYEE_DB_PATH)
     print("Database initialized.")
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        ensure_auth_schema(EMPLOYEE_DB_PATH)
+        seed_initial_admin_from_env(EMPLOYEE_DB_PATH)
     app.run(debug=True, port=5004)

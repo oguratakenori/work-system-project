@@ -222,14 +222,19 @@
                 </td>
                 <td class="col-actions text-center">
                     <div class="list-actions">
+                        {% if has_permission('record_write') %}
                         <a href="{{ url_for('edit_performance', id=record.id) }}" class="btn btn-warning btn-sm">
                             <i class="bi bi-pencil"></i>
                         </a>
+                        {% endif %}
+                        {% if has_permission('record_delete') %}
                         <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal{{ record.id }}">
                             <i class="bi bi-trash"></i>
                         </button>
+                        {% endif %}
                     </div>
 
+                    {% if has_permission('record_delete') %}
                     <!-- Delete Confirmation Modal -->
                     <div class="modal fade" id="deleteModal{{ record.id }}" tabindex="-1">
                         <div class="modal-dialog">
@@ -258,6 +263,7 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
                 </td>
             </tr>
             {% else %}

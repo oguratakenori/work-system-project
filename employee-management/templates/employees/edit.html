@@ -5,89 +5,147 @@
     <h2>{{ '社員編集' if employee else '社員新規登録' }}</h2>
 </div>
 
-<div class="card">
-    <div class="card-body">
-        <form method="POST">
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <label for="employee_code" class="form-label">社員コード</label>
-                    <input type="text" class="form-control" id="employee_code" name="employee_code" 
-                           value="{{ employee.employee_code if employee else '' }}" required maxlength="10">
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label for="hourly_wage" class="form-label">時給</label>
-                    <div class="input-group">
-                        <input type="text" class="form-control" id="hourly_wage_display" 
-                               value="{{ '{:,}'.format(employee.current_hourly_rate) if employee else '0' }}" required>
-                        <input type="hidden" id="hourly_wage" name="hourly_wage" 
-                               value="{{ employee.current_hourly_rate if employee else '0' }}">
-                        <span class="input-group-text">円</span>
+<div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-9">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="employee_code" class="form-label">社員コード</label>
+                            <input type="text" class="form-control" id="employee_code" name="employee_code"
+                                   value="{{ employee.employee_code if employee else '' }}" required maxlength="10"
+                                   {{ 'readonly' if employee else '' }}>
+                            {% if employee %}
+                            <div class="form-text">社員コードはログインIDとして使用するため、登録後は変更できません。</div>
+                            {% endif %}
+                        </div>
                     </div>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">氏名</label>
-                    <div class="input-group">
-                        <input type="text" class="form-control" name="last_name" placeholder="姓" value="{{ employee.last_name if employee else '' }}" required>
-                        <input type="text" class="form-control" name="first_name" placeholder="名" value="{{ employee.first_name if employee else '' }}" required>
+
+                    <div class="row">
+                        <div class="col-sm-6 col-lg-3 mb-3">
+                            <label for="last_name" class="form-label">姓</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" placeholder="姓" value="{{ employee.last_name if employee else '' }}" required>
+                        </div>
+                        <div class="col-sm-6 col-lg-3 mb-3">
+                            <label for="first_name" class="form-label">名</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" placeholder="名" value="{{ employee.first_name if employee else '' }}" required>
+                        </div>
+                        <div class="col-sm-6 col-lg-3 mb-3">
+                            <label for="furigana_last" class="form-label">セイ</label>
+                            <input type="text" class="form-control" id="furigana_last" name="furigana_last" placeholder="セイ" value="{{ employee.furigana_last if employee else '' }}" required>
+                        </div>
+                        <div class="col-sm-6 col-lg-3 mb-3">
+                            <label for="furigana_first" class="form-label">メイ</label>
+                            <input type="text" class="form-control" id="furigana_first" name="furigana_first" placeholder="メイ" value="{{ employee.furigana_first if employee else '' }}" required>
+                        </div>
                     </div>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">フリガナ</label>
-                    <div class="input-group">
-                        <input type="text" class="form-control" name="furigana_last" placeholder="セイ" value="{{ employee.furigana_last if employee else '' }}" required>
-                        <input type="text" class="form-control" name="furigana_first" placeholder="メイ" value="{{ employee.furigana_first if employee else '' }}" required>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="birth_date" class="form-label">生年月日</label>
+                            <input type="date" class="form-control" id="birth_date" name="birth_date" value="{{ employee.birth_date if employee and employee.birth_date else '' }}" max="9999-12-31">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="phone_number" class="form-label">電話番号</label>
+                            <input type="text" class="form-control" id="phone_number" name="phone_number" value="{{ employee.phone_number if employee and employee.phone_number else '' }}" maxlength="30">
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="department_id" class="form-label">所属部署</label>
-                    <select class="form-select" id="department_id" name="department_id">
-                        <option value="">ー</option>
-                        {% for dept in departments %}
-                        <option value="{{ dept.id }}" {{ 'selected' if employee and employee.department_id == dept.id else '' }}>{{ dept.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="position_id" class="form-label">役職</label>
-                    <select class="form-select" id="position_id" name="position_id">
-                        <option value="">ー</option>
-                        {% for pos in positions %}
-                        <option value="{{ pos.id }}" {{ 'selected' if employee and employee.position_id == pos.id else '' }}>{{ pos.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="postal_code" class="form-label">郵便番号</label>
+                            <input type="text" class="form-control" id="postal_code" name="postal_code" value="{{ employee.postal_code if employee and employee.postal_code else '' }}" maxlength="20">
+                        </div>
+                    </div>
 
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <label for="hire_date" class="form-label">入社日</label>
-                    <input type="date" class="form-control" id="hire_date" name="hire_date" value="{{ employee.hire_date if employee else '' }}" placeholder=" " max="9999-12-31">
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label for="retirement_date" class="form-label">退職日</label>
-                    <input type="date" class="form-control" id="retirement_date" name="retirement_date" value="{{ employee.retirement_date if employee else '' }}" placeholder=" " max="9999-12-31">
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label for="status" class="form-label">状態</label>
-                    <select class="form-select" id="status" name="status" required>
-                        <option value="在職" {{ 'selected' if employee and employee.status == '在職' else '' }}>在職</option>
-                        <option value="休職" {{ 'selected' if employee and employee.status == '休職' else '' }}>休職</option>
-                        <option value="退職" {{ 'selected' if employee and employee.status == '退職' else '' }}>退職</option>
-                    </select>
-                </div>
-            </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="address1_furigana" class="form-label">住所1フリガナ</label>
+                            <input type="text" class="form-control" id="address1_furigana" name="address1_furigana" value="{{ employee.address1_furigana if employee and employee.address1_furigana else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="address2_furigana" class="form-label">住所2フリガナ</label>
+                            <input type="text" class="form-control" id="address2_furigana" name="address2_furigana" value="{{ employee.address2_furigana if employee and employee.address2_furigana else '' }}">
+                        </div>
+                    </div>
 
-            <div class="mt-4">
-                <button type="submit" class="btn btn-success">保存</button>
-                <a href="{{ url_for('employee_list') }}" class="btn btn-secondary">キャンセル</a>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="address1" class="form-label">住所1</label>
+                            <input type="text" class="form-control" id="address1" name="address1" value="{{ employee.address1 if employee and employee.address1 else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="address2" class="form-label">住所2</label>
+                            <input type="text" class="form-control" id="address2" name="address2" value="{{ employee.address2 if employee and employee.address2 else '' }}">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="hire_date" class="form-label">入社日</label>
+                            <input type="date" class="form-control" id="hire_date" name="hire_date" value="{{ employee.hire_date if employee else '' }}" placeholder=" " max="9999-12-31">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="retirement_date" class="form-label">退職日</label>
+                            <input type="date" class="form-control" id="retirement_date" name="retirement_date" value="{{ employee.retirement_date if employee else '' }}" placeholder=" " max="9999-12-31">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="status" class="form-label">状態</label>
+                            <select class="form-select" id="status" name="status" required>
+                                <option value="在職" {{ 'selected' if employee and employee.status == '在職' else '' }}>在職</option>
+                                <option value="休職" {{ 'selected' if employee and employee.status == '休職' else '' }}>休職</option>
+                                <option value="退職" {{ 'selected' if employee and employee.status == '退職' else '' }}>退職</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="department_id" class="form-label">所属部署</label>
+                            <select class="form-select" id="department_id" name="department_id">
+                                <option value="">ー</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}" {{ 'selected' if employee and employee.department_id == dept.id else '' }}>{{ dept.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="position_id" class="form-label">役職</label>
+                            <select class="form-select" id="position_id" name="position_id">
+                                <option value="">ー</option>
+                                {% for pos in positions %}
+                                <option value="{{ pos.id }}" {{ 'selected' if employee and employee.position_id == pos.id else '' }}>{{ pos.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="hourly_wage" class="form-label">時給</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="hourly_wage_display"
+                                       value="{{ '{:,}'.format(employee.current_hourly_rate) if employee else '0' }}" required>
+                                <input type="hidden" id="hourly_wage" name="hourly_wage"
+                                       value="{{ employee.current_hourly_rate if employee else '0' }}">
+                                <span class="input-group-text">円</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">備考</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="5">{{ employee.notes if employee and employee.notes else '' }}</textarea>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-success">保存</button>
+                        <a href="{{ url_for('employee_list') }}" class="btn btn-secondary">キャンセル</a>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 

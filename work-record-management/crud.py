@@ -3,8 +3,10 @@ import os
 from datetime import datetime
 from models import db, Work, PerformanceRecord
 
-EXTERNAL_EMPLOYEE_DB = r'C:\work\work-system-project\employee-management\instance\employee_management.db'
-EXTERNAL_PRODUCT_DB = r'C:\work\work-system-project\product-management\instance\product_management.db'
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, '..'))
+EXTERNAL_EMPLOYEE_DB = os.path.join(PROJECT_ROOT, 'employee-management', 'instance', 'employee_management.db')
+EXTERNAL_PRODUCT_DB = os.path.join(PROJECT_ROOT, 'product-management', 'instance', 'product_management.db')
 
 def get_external_departments():
     if not os.path.exists(EXTERNAL_EMPLOYEE_DB):
@@ -28,7 +30,13 @@ def get_external_employees(query=None):
         conn = sqlite3.connect(EXTERNAL_EMPLOYEE_DB)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        sql = "SELECT employee_code, last_name, first_name FROM employees WHERE is_active = 1 OR is_active IS NULL"
+        sql = """
+            SELECT employee_code, last_name, first_name
+            FROM employees
+            WHERE (is_active = 1 OR is_active IS NULL)
+              AND employee_code != 'ADMIN001'
+              AND (is_system_user = 0 OR is_system_user IS NULL)
+        """
         params = []
         if query:
             sql += " AND (employee_code LIKE ? OR last_name LIKE ? OR first_name LIKE ?)"

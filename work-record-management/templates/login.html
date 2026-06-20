@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h2 class="h4 mb-4 text-center">{{ system_name }} ログイン</h2>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="employee_code" class="form-label">社員コード</label>
+                        <input type="text" class="form-control" id="employee_code" name="employee_code" required autofocus>
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="form-label">パスワード</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-warning text-white w-100">ログイン</button>
+                </form>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('forgot_password') }}">パスワードを忘れた方はこちら</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

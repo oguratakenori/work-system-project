@@ -102,6 +102,19 @@
             targetDateInput.value = '';
         });
 
+        amountInputs.forEach(function(input, index) {
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const nextInput = amountInputs[index + 1];
+                    if (nextInput) {
+                        nextInput.focus();
+                        nextInput.select();
+                    }
+                }
+            });
+        });
+
         // Validation on submit
         form.addEventListener('submit', function(e) {
             let totalAmount = 0;
